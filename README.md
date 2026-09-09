@@ -4,7 +4,7 @@ Aplicação de terminal desenvolvida em Java para cadastrar e acompanhar
 chamados de suporte técnico.
 
 Projeto de estudo em evolução, com foco em orientação a objetos,
-validação de entradas e regras de negócio.
+separação de responsabilidades e testes automatizados.
 
 ## Funcionalidades
 
@@ -26,42 +26,73 @@ Aberto → Em atendimento → Resolvido
 - Somente chamados em atendimento podem ser resolvidos.
 - Chamados resolvidos não podem ser reabertos nesta versão.
 
-## Tecnologias e conceitos
+## Tecnologias
 
-- Java
-- Git
-- Classes e objetos
-- Encapsulamento
-- ArrayList
-- Métodos
-- Tratamento de exceções
+- Java, com compilação direcionada à versão 21
+- Maven
+- JUnit Jupiter
+- Git e GitHub
+
+## Organização do código
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `src/main/java/Main.java` | Menu, leitura de dados e apresentação dos resultados |
+| `src/main/java/Chamado.java` | Dados do chamado e regras de mudança de status |
+| `src/main/java/ChamadoService.java` | Cadastro, listagem, busca e operações sobre chamados |
+| `src/test/java/ChamadoServiceTest.java` | Testes automatizados do serviço e das regras |
+| `pom.xml` | Configuração do Maven e dependências |
 
 ## Como executar
 
-É necessário ter um JDK instalado e os comandos `javac` e `java`
-disponíveis no terminal.
+Requisitos: JDK 21 ou superior e Maven 3.9.x instalados,
+com os comandos `java`, `javac` e `mvn` disponíveis no terminal.
 
-Na pasta principal do projeto, compile:
+Clone o repositório:
 
 ```bash
-javac -encoding UTF-8 -d out src/Main.java src/Chamado.java
+git clone https://github.com/Guilherme-Tonellidev/sistema-chamados-java.git
+```
+
+Entre na pasta:
+
+```bash
+cd sistema-chamados-java
+```
+
+Compile:
+
+```bash
+mvn clean compile
 ```
 
 Execute:
 
 ```bash
-java -cp out Main
+java -cp target/classes Main
 ```
 
-Use o menu do terminal para abrir, listar e atualizar chamados.
+Use o menu para abrir, listar e atualizar chamados.
 Digite `0` para encerrar.
 
-## Estrutura
+## Testes automatizados
 
-- `src/Main.java`: menu, leitura de dados e apresentação dos resultados.
-- `src/Chamado.java`: dados do chamado e regras de mudança de status.
-- `src/ChamadoService.java`: cadastro, listagem, busca e operações sobre chamados.
-- `.gitignore`: arquivos que não devem ser versionados.
+Execute:
+
+```bash
+mvn clean test
+```
+
+Os oito testes verificam:
+
+- Cadastro de chamado com status inicial "Aberto".
+- Geração de números diferentes para os chamados.
+- Rejeição de título vazio.
+- Rejeição de descrição vazia.
+- Fluxo de atendimento até a resolução.
+- Impedimento de resolução direta de um chamado aberto.
+- Impedimento de reiniciar um chamado resolvido.
+- Erro ao buscar um chamado inexistente.
 
 ## Limitação atual
 
@@ -70,10 +101,10 @@ ao encerrar o programa.
 
 ## Próximas melhorias
 
-- Adicionar testes automatizados.
+- Executar os testes automaticamente no GitHub.
 - Criar uma API REST com Spring Boot.
 - Adicionar persistência em banco de dados.
 
 ## Autor
 
-Guilherme Tonelli
+[Guilherme Tonelli](https://github.com/Guilherme-Tonellidev)
