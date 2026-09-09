@@ -58,8 +58,9 @@ Digite `0` para encerrar.
 
 ## Estrutura
 
-- `src/Main.java`: menu, leitura de dados e gerenciamento da lista.
+- `src/Main.java`: menu, leitura de dados e apresentação dos resultados.
 - `src/Chamado.java`: dados do chamado e regras de mudança de status.
+- `src/ChamadoService.java`: cadastro, listagem, busca e operações sobre chamados.
 - `.gitignore`: arquivos que não devem ser versionados.
 
 ## Limitação atual
@@ -69,7 +70,6 @@ ao encerrar o programa.
 
 ## Próximas melhorias
 
-- Separar o gerenciamento dos chamados em uma classe de serviço.
 - Adicionar testes automatizados.
 - Criar uma API REST com Spring Boot.
 - Adicionar persistência em banco de dados.

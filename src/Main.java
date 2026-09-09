@@ -1,15 +1,12 @@
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
     private static final Scanner sc = new Scanner(System.in);
-    private static final ArrayList<Chamado> chamados = new ArrayList<>();
-
-    private static int proximoId = 1;
+    private static final ChamadoService service = new ChamadoService();
 
     public static void main(String[] args) {
-
         boolean executando = true;
 
         while (executando) {
@@ -82,22 +79,22 @@ public class Main {
         String titulo = lerTextoObrigatorio("Título do chamado: ");
         String descricao = lerTextoObrigatorio("Descrição do problema: ");
 
-        Chamado novoChamado = new Chamado(
-            proximoId,
-            titulo,
-            descricao
-        );
+        try {
+            Chamado chamado = service.abrirChamado(titulo, descricao);
 
-        chamados.add(novoChamado);
-        proximoId++;
+            System.out.println(
+                "Chamado nº " + chamado.getId()
+                + " aberto com sucesso!"
+            );
 
-        System.out.println(
-            "Chamado nº " + novoChamado.getId()
-            + " aberto com sucesso!"
-        );
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     private static void listarChamados() {
+        List<Chamado> chamados = service.listarChamados();
+
         if (chamados.isEmpty()) {
             System.out.println("Nenhum chamado cadastrado.");
             return;
@@ -114,45 +111,31 @@ public class Main {
         }
     }
 
-    private static Chamado buscarChamadoPorId(int id) {
-        for (Chamado chamado : chamados) {
-            if (chamado.getId() == id) {
-                return chamado;
-            }
-        }
-
-        return null;
-    }
-
     private static void atualizarStatus() {
-        if (chamados.isEmpty()) {
+        if (service.listarChamados().isEmpty()) {
             System.out.println("Nenhum chamado cadastrado.");
             return;
         }
 
         int id = lerInteiro("Número do chamado: ");
-        Chamado chamado = buscarChamadoPorId(id);
-
-        if (chamado == null) {
-            System.out.println("Chamado não encontrado.");
-            return;
-        }
-
-        System.out.println("Título: " + chamado.getTitulo());
-        System.out.println("Status atual: " + chamado.getStatus());
-        System.out.println("1 - Iniciar atendimento");
-        System.out.println("2 - Resolver chamado");
-
-        int acao = lerInteiro("Escolha uma ação: ");
 
         try {
+            Chamado chamado = service.buscarChamadoPorId(id);
+
+            System.out.println("Título: " + chamado.getTitulo());
+            System.out.println("Status atual: " + chamado.getStatus());
+            System.out.println("1 - Iniciar atendimento");
+            System.out.println("2 - Resolver chamado");
+
+            int acao = lerInteiro("Escolha uma ação: ");
+
             switch (acao) {
                 case 1:
-                    chamado.iniciarAtendimento();
+                    service.iniciarAtendimento(id);
                     break;
 
                 case 2:
-                    chamado.resolver();
+                    service.resolverChamado(id);
                     break;
 
                 default:
@@ -164,7 +147,7 @@ public class Main {
                 "Status atualizado: " + chamado.getStatus()
             );
 
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             System.out.println(e.getMessage());
         }
     }
