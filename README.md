@@ -99,9 +99,15 @@ Os oito testes verificam:
 Os chamados são armazenados apenas em memória e são perdidos
 ao encerrar o programa.
 
+## Integração contínua
+
+O GitHub Actions compila o projeto e executa os testes com Java 21
+a cada push na branch main e em pull requests destinados a ela.
+
+A execução também pode ser iniciada manualmente pela aba Actions.
+
 ## Próximas melhorias
 
-- Executar os testes automaticamente no GitHub.
 - Criar uma API REST com Spring Boot.
 - Adicionar persistência em banco de dados.
 
