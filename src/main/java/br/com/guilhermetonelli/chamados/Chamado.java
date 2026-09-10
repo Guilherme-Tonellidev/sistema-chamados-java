@@ -1,3 +1,4 @@
+package br.com.guilhermetonelli.chamados;
 public class Chamado {
 
     private int id;
