@@ -114,8 +114,14 @@ Digite 0 no menu para encerrar.
 mvn clean test
 ```
 
-O projeto possui oito testes do serviço e das regras de negócio.
-Os testes HTTP serão adicionados em uma próxima etapa.
+O projeto possui 13 testes automatizados:
+
+- 8 testes do serviço e das regras de negócio.
+- 5 testes do controller com MockMvc, cobrindo listagem,
+  cadastro e rejeição de dados inválidos.
+
+Os testes do controller simulam requisições sem iniciar um servidor
+e usam uma nova instância do serviço em cada teste.
 
 ## Integração contínua
 
