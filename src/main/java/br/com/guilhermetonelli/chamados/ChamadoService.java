@@ -1,7 +1,11 @@
 package br.com.guilhermetonelli.chamados;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+@Service
 public class ChamadoService {
 
     private final List<Chamado> chamados = new ArrayList<>();

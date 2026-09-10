@@ -1,24 +1,30 @@
 # Sistema de Chamados de TI
 
-Aplicação de terminal desenvolvida em Java para cadastrar e acompanhar
-chamados de suporte técnico.
-
-Projeto de estudo em evolução, com foco em orientação a objetos,
-separação de responsabilidades e testes automatizados.
+Projeto de estudo desenvolvido em Java para cadastrar e acompanhar
+chamados de suporte técnico, com versão de terminal e API REST
+em desenvolvimento.
 
 ## Funcionalidades
 
-- Abertura de chamados com número sequencial, título e descrição.
-- Listagem dos chamados cadastrados.
-- Busca por número para atualização de status.
-- Validação de campos obrigatórios e entradas numéricas.
-- Controle das transições de status.
+### Terminal
+
+- Abrir e listar chamados.
+- Buscar chamados pelo número para atualizar o status.
+- Iniciar atendimento e resolver chamados.
+- Validar entradas numéricas e campos obrigatórios.
+
+### API REST
+
+- GET /chamados: listar chamados.
+- POST /chamados: cadastrar um chamado.
+- Retornar HTTP 201 no cadastro válido.
+- Retornar HTTP 400 para título ou descrição vazios.
 
 ## Regras de negócio
 
-Todo chamado começa com o status "Aberto".
+Todo chamado começa como "Aberto".
 
-O fluxo permitido é:
+Fluxo permitido:
 
 Aberto → Em atendimento → Resolvido
 
@@ -29,36 +35,64 @@ Aberto → Em atendimento → Resolvido
 ## Tecnologias
 
 - Java, com compilação direcionada à versão 21
+- Spring Boot 4.1.1
 - Maven
 - JUnit Jupiter
 - Git e GitHub
+- GitHub Actions
 
-## Organização do código
+## Organização
 
-| Arquivo | Responsabilidade |
+As classes principais ficam em:
+
+`src/main/java/br/com/guilhermetonelli/chamados`
+
+| Classe | Responsabilidade |
 |---|---|
-| `src/main/java/Main.java` | Menu, leitura de dados e apresentação dos resultados |
-| `src/main/java/Chamado.java` | Dados do chamado e regras de mudança de status |
-| `src/main/java/ChamadoService.java` | Cadastro, listagem, busca e operações sobre chamados |
-| `src/test/java/ChamadoServiceTest.java` | Testes automatizados do serviço e das regras |
-| `pom.xml` | Configuração do Maven e dependências |
+| Main | Menu e interação pelo terminal |
+| Chamado | Dados e regras de mudança de status |
+| ChamadoService | Cadastro, listagem e busca |
+| ChamadosApplication | Inicialização do Spring Boot |
+| ChamadoController | Rotas HTTP |
+| CriarChamadoRequest | Dados recebidos no cadastro pela API |
 
-## Como executar
+Os testes ficam em:
 
-Requisitos: JDK 21 ou superior e Maven 3.9.x instalados,
-com os comandos `java`, `javac` e `mvn` disponíveis no terminal.
+`src/test/java/br/com/guilhermetonelli/chamados/ChamadoServiceTest.java`
 
-Clone o repositório:
+## Requisitos
+
+- JDK 21 ou uma versão posterior compatível com o Spring Boot utilizado
+- Maven 3.9.x
+- Comandos java e mvn disponíveis no terminal
+
+## Executar a API
+
+Na pasta principal do projeto:
 
 ```bash
-git clone https://github.com/Guilherme-Tonellidev/sistema-chamados-java.git
+mvn spring-boot:run
 ```
 
-Entre na pasta:
+Consultar no navegador:
 
-```bash
-cd sistema-chamados-java
+http://localhost:8080/chamados
+
+Uma lista vazia aparece como `[]`.
+
+### Cadastrar pelo PowerShell
+
+Abra outro terminal enquanto a API estiver rodando:
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/chamados" -Method Post -ContentType "application/json; charset=utf-8" -Body '{"titulo":"Computador sem internet","descricao":"O computador perdeu a conexao."}'
 ```
+
+Atualize a consulta no navegador para visualizar o chamado.
+
+Para encerrar a API, pressione Ctrl + C no terminal do servidor.
+
+## Executar a versão de terminal
 
 Compile:
 
@@ -69,46 +103,40 @@ mvn clean compile
 Execute:
 
 ```bash
-java -cp target/classes Main
+java -cp target/classes br.com.guilhermetonelli.chamados.Main
 ```
 
-Use o menu para abrir, listar e atualizar chamados.
-Digite `0` para encerrar.
+Digite 0 no menu para encerrar.
 
 ## Testes automatizados
-
-Execute:
 
 ```bash
 mvn clean test
 ```
 
-Os oito testes verificam:
-
-- Cadastro de chamado com status inicial "Aberto".
-- Geração de números diferentes para os chamados.
-- Rejeição de título vazio.
-- Rejeição de descrição vazia.
-- Fluxo de atendimento até a resolução.
-- Impedimento de resolução direta de um chamado aberto.
-- Impedimento de reiniciar um chamado resolvido.
-- Erro ao buscar um chamado inexistente.
-
-## Limitação atual
-
-Os chamados são armazenados apenas em memória e são perdidos
-ao encerrar o programa.
+O projeto possui oito testes do serviço e das regras de negócio.
+Os testes HTTP serão adicionados em uma próxima etapa.
 
 ## Integração contínua
 
-O GitHub Actions compila o projeto e executa os testes com Java 21
-a cada push na branch main e em pull requests destinados a ela.
+O GitHub Actions compila e executa os testes com Java 21
+a cada push em main e em pull requests destinados a ela.
 
-A execução também pode ser iniciada manualmente pela aba Actions.
+Também é possível iniciar a execução manualmente pela aba Actions.
+
+## Limitações atuais
+
+- Os chamados ficam em memória e são perdidos ao encerrar a aplicação.
+- Terminal e API, executados separadamente, não compartilham dados.
+- Atualização de status ainda está disponível apenas no terminal.
+- A API ainda não possui autenticação, banco de dados ou tratamento
+  de concorrência para uso com múltiplos usuários.
 
 ## Próximas melhorias
 
-- Criar uma API REST com Spring Boot.
+- Adicionar testes das rotas HTTP.
+- Disponibilizar atualização de status pela API.
+- Preparar o armazenamento para acessos simultâneos.
 - Adicionar persistência em banco de dados.
 
 ## Autor

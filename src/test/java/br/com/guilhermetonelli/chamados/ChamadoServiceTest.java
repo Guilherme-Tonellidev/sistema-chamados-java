@@ -1,4 +1,5 @@
 package br.com.guilhermetonelli.chamados;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,8 +27,8 @@ public class ChamadoServiceTest {
             chamado.getDescricao()
         );
         assertEquals("Aberto", chamado.getStatus());
-
         assertEquals(1, service.listarChamados().size());
+
         assertSame(
             chamado,
             service.buscarChamadoPorId(chamado.getId())
