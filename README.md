@@ -1,155 +1,192 @@
 # Sistema de Chamados de TI
 
-Projeto de estudo desenvolvido em Java para cadastrar e acompanhar
-chamados de suporte técnico, com versão de terminal e API REST.
+[![Testes Java](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions/workflows/testes.yml/badge.svg)](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions/workflows/testes.yml)
 
-O objetivo é praticar orientação a objetos, organização do código,
-regras de negócio, testes automatizados e integração contínua.
+API REST para gerenciamento de chamados de suporte técnico, desenvolvida com Java e Spring Boot, com armazenamento em PostgreSQL.
+
+Projeto de estudo para praticar desenvolvimento back-end, regras de negócio, persistência de dados, testes automatizados e integração contínua.
 
 ## Funcionalidades
 
-### Terminal
-
-- Abrir e listar chamados.
-- Buscar chamados pelo número para atualizar o status.
-- Iniciar atendimento e resolver chamados.
-- Validar entradas numéricas e campos obrigatórios.
-
-### API REST
-
-| Método | Rota | Funcionalidade |
-|---|---|---|
-| GET | `/chamados` | Listar todos os chamados |
-| GET | `/chamados/{id}` | Buscar um chamado pelo número |
-| POST | `/chamados` | Cadastrar um chamado |
-| PATCH | `/chamados/{id}/atendimento` | Iniciar o atendimento |
-| PATCH | `/chamados/{id}/resolucao` | Resolver um chamado |
-
-### Respostas HTTP
-
-- 200: consulta ou atualização realizada com sucesso.
-- 201: chamado criado.
-- 400: dados de entrada inválidos.
-- 404: chamado não encontrado.
-- 409: mudança de status incompatível com o estado atual.
+- Abrir chamados com título e descrição.
+- Listar chamados cadastrados.
+- Buscar um chamado pelo ID.
+- Iniciar o atendimento de um chamado.
+- Resolver um chamado em atendimento.
+- Preservar os dados depois de reiniciar a aplicação.
+- Validar campos obrigatórios e transições de status.
 
 ## Regras de negócio
 
-Todo chamado começa com o status "Aberto".
-
-O fluxo permitido é:
-
-Aberto → Em atendimento → Resolvido
-
-- Título e descrição são obrigatórios.
-- O número do chamado é gerado automaticamente.
-- Somente chamados abertos podem iniciar o atendimento.
+- Novos chamados recebem o status `Aberto`.
+- Título e descrição não podem ficar vazios.
+- Somente chamados abertos podem iniciar atendimento.
 - Somente chamados em atendimento podem ser resolvidos.
-- Chamados resolvidos não podem ser reabertos nesta versão.
+- Chamados resolvidos não podem iniciar atendimento novamente.
+
+Fluxo de status:
+
+**Aberto → Em atendimento → Resolvido**
 
 ## Tecnologias
 
-- Java, com compilação direcionada à versão 21
-- Spring Boot 4.1.1
+- Java 21
+- Spring Boot
+- Spring Web MVC
+- Spring Data JPA
+- PostgreSQL
 - Maven
 - JUnit Jupiter
 - MockMvc
+- H2 para testes
 - Git e GitHub
 - GitHub Actions
 
-## Organização do projeto
+## Organização do código
 
-As classes principais ficam em:
-
-`src/main/java/br/com/guilhermetonelli/chamados`
-
-| Arquivo | Responsabilidade |
+| Componente | Responsabilidade |
 |---|---|
-| `Main.java` | Menu e interação pelo terminal |
-| `Chamado.java` | Dados do chamado e regras de mudança de status |
-| `ChamadoService.java` | Cadastro, listagem, busca e operações sobre chamados |
-| `ChamadosApplication.java` | Inicialização da aplicação Spring Boot |
-| `ChamadoController.java` | Rotas HTTP e respostas da API |
-| `CriarChamadoRequest.java` | Dados recebidos no cadastro pela API |
+| `ChamadosApplication` | Inicialização da aplicação Spring Boot |
+| `Chamado` | Entidade persistida e regras de mudança de status |
+| `ChamadoRepository` | Acesso aos dados com Spring Data JPA |
+| `ChamadoService` | Operações de negócio e transações |
+| `ChamadoController` | Endpoints HTTP da API |
+| `CriarChamadoRequest` | Dados recebidos na abertura de chamados |
+| `Main` | Interface de console |
 
-Os testes ficam em:
+O código principal fica em `src/main/java/br/com/guilhermetonelli/chamados`.
 
-`src/test/java/br/com/guilhermetonelli/chamados`
+As configurações ficam em `src/main/resources`.
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `ChamadoServiceTest.java` | Testes do serviço e das regras de negócio |
-| `ChamadoControllerTest.java` | Testes de cadastro, listagem e entradas inválidas |
-| `ChamadoStatusControllerTest.java` | Testes de busca e atualização de status |
+Os testes e suas configurações ficam em `src/test/java` e `src/test/resources`.
 
-Outros arquivos:
+## Pré-requisitos
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `pom.xml` | Configuração do Maven e dependências |
-| `.gitignore` | Arquivos e pastas ignorados pelo Git |
-| `.github/workflows/testes.yml` | Execução automática dos testes |
+- JDK 21 ou uma versão posterior compatível com o Spring Boot utilizado.
+- Maven 3.9.x.
+- PostgreSQL instalado e em execução.
+- Git para clonar o projeto.
 
-## Requisitos
+A compilação utiliza a versão 21 do Java. A integração contínua também executa com Java 21.
 
-- JDK 21 ou uma versão posterior compatível com o Spring Boot utilizado
-- Maven 3.9.x
-- Git para clonar o repositório
-- Comandos `java`, `mvn` e `git` disponíveis no terminal
+## Como executar a API
 
-## Obter o projeto
+### 1. Clonar o repositório
 
-Clone o repositório:
-
-```bash
+```powershell
 git clone https://github.com/Guilherme-Tonellidev/sistema-chamados-java.git
-```
-
-Entre na pasta:
-
-```bash
 cd sistema-chamados-java
 ```
 
-## Executar a API
+### 2. Preparar o PostgreSQL
 
-Na pasta principal do projeto:
+No pgAdmin, conecte-se com um usuário administrador.
 
-```bash
+Em **Login/Group Roles**, crie um usuário com:
+
+- Nome: `chamados_app`.
+- Senha: uma senha definida por você.
+- Permissão de login habilitada.
+
+Depois, em **Databases**, crie o banco:
+
+- Nome: `chamados_db`.
+- Proprietário: `chamados_app`.
+
+O usuário da aplicação não precisa ser superusuário.
+
+### 3. Configurar a conexão
+
+O arquivo `src/main/resources/application.properties` utiliza:
+
+```properties
+spring.application.name=sistema-chamados-java
+
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/chamados_db}
+spring.datasource.username=${DB_USER:chamados_app}
+spring.datasource.password=${DB_PASSWORD}
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.open-in-view=false
+```
+
+| Variável | Finalidade | Valor padrão |
+|---|---|---|
+| `DB_URL` | Endereço do banco | `jdbc:postgresql://localhost:5432/chamados_db` |
+| `DB_USER` | Usuário do banco | `chamados_app` |
+| `DB_PASSWORD` | Senha do banco | Sem padrão; deve ser informada |
+
+Para informar a senha no PowerShell:
+
+```powershell
+$senhaBanco = Read-Host "Senha do chamados_app" -AsSecureString
+$env:DB_PASSWORD = [System.Net.NetworkCredential]::new("", $senhaBanco).Password
+```
+
+Digite a senha do usuário `chamados_app` quando solicitado.
+
+A variável fica disponível nessa sessão do terminal. Ao abrir outro terminal, informe-a novamente.
+
+Não coloque senhas reais no código, no README ou em arquivos enviados ao GitHub.
+
+### 4. Iniciar a aplicação
+
+No mesmo terminal:
+
+```powershell
 mvn spring-boot:run
 ```
 
-A aplicação inicia, por padrão, na porta 8080.
+A API fica disponível em:
 
-Consulte no navegador:
-
+```text
 http://localhost:8080/chamados
+```
 
-Se nenhum chamado tiver sido cadastrado, a resposta será:
+Se não houver chamados cadastrados, a resposta será:
 
 ```json
 []
 ```
 
-Para encerrar o servidor, pressione `Ctrl + C` no terminal.
+Nesta etapa de desenvolvimento, o Hibernate cria ou atualiza as tabelas por meio da configuração `ddl-auto=update`.
 
-## Exemplos de uso pelo PowerShell
+## Endpoints
 
-Mantenha a API rodando e abra outro terminal PowerShell.
+| Método | Caminho | Operação | Sucesso |
+|---|---|---|---|
+| GET | `/chamados` | Listar chamados | 200 |
+| GET | `/chamados/{id}` | Buscar pelo ID | 200 |
+| POST | `/chamados` | Abrir chamado | 201 |
+| PATCH | `/chamados/{id}/atendimento` | Iniciar atendimento | 200 |
+| PATCH | `/chamados/{id}/resolucao` | Resolver chamado | 200 |
 
-### Cadastrar um chamado
+Respostas de erro:
+
+- **400 Bad Request:** dados de cadastro inválidos ou JSON malformado.
+- **404 Not Found:** chamado não encontrado.
+- **409 Conflict:** mudança de status incompatível com o estado atual.
+
+## Exemplos no PowerShell
+
+Com a aplicação em execução, abra outro terminal.
+
+### Abrir um chamado
 
 ```powershell
-$chamado = Invoke-RestMethod -Uri "http://localhost:8080/chamados" -Method Post -ContentType "application/json; charset=utf-8" -Body '{"titulo":"Problema no teclado","descricao":"Algumas teclas pararam de funcionar."}'
-```
+$dados = @{
+    titulo = "Computador nao liga"
+    descricao = "O equipamento nao responde ao botao."
+} | ConvertTo-Json
 
-Exiba o resultado:
+$chamado = Invoke-RestMethod `
+    -Uri "http://localhost:8080/chamados" `
+    -Method Post `
+    -ContentType "application/json; charset=utf-8" `
+    -Body $dados
 
-```powershell
 $chamado
 ```
-
-A resposta contém o número, o título, a descrição e o status "Aberto".
 
 ### Listar chamados
 
@@ -157,116 +194,92 @@ A resposta contém o número, o título, a descrição e o status "Aberto".
 Invoke-RestMethod -Uri "http://localhost:8080/chamados"
 ```
 
-### Buscar o chamado cadastrado
+### Buscar o chamado criado
 
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)"
 ```
 
-### Iniciar o atendimento
+### Iniciar atendimento
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/atendimento" -Method Patch
+Invoke-RestMethod `
+    -Uri "http://localhost:8080/chamados/$($chamado.id)/atendimento" `
+    -Method Patch
 ```
-
-O status passa para "Em atendimento".
 
 ### Resolver o chamado
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/resolucao" -Method Patch
+Invoke-RestMethod `
+    -Uri "http://localhost:8080/chamados/$($chamado.id)/resolucao" `
+    -Method Patch
 ```
 
-O status passa para "Resolvido".
+Os exemplos usam o ID retornado no cadastro. Execute-os na ordem apresentada e no mesmo terminal.
 
-### Conferir uma entrada inválida
+## Persistência
 
-```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados" -Method Post -ContentType "application/json; charset=utf-8" -Body '{"titulo":"","descricao":"Descricao de teste"}'
-```
+Os chamados são armazenados no PostgreSQL e permanecem disponíveis depois de reiniciar a aplicação.
 
-A API responde com HTTP 400 e uma mensagem de erro.
-O chamado não é cadastrado.
+Para verificar:
 
-## Executar a versão de terminal
+1. Cadastre um chamado pela API.
+2. Encerre a aplicação com `Ctrl + C`.
+3. Execute novamente `mvn spring-boot:run` no mesmo terminal.
+4. Consulte `GET /chamados`.
 
-Compile o projeto:
-
-```bash
-mvn clean compile
-```
-
-Execute:
-
-```bash
-java -cp target/classes br.com.guilhermetonelli.chamados.Main
-```
-
-Use o menu para cadastrar, listar e atualizar chamados.
-
-Digite `0` para encerrar.
+O chamado cadastrado deve continuar na listagem.
 
 ## Testes automatizados
 
-Execute na pasta principal do projeto:
+Execute na raiz do projeto:
 
-```bash
-mvn test
+```powershell
+mvn clean test
 ```
 
-O projeto possui 18 testes automatizados:
+A suíte atual contém **18 testes de integração**, cobrindo:
 
-- 8 testes do serviço e das regras de negócio.
-- 5 testes de cadastro e listagem da API.
-- 5 testes de busca e atualização de status pela API.
+- Cadastro e listagem de chamados.
+- Validação de título e descrição.
+- Busca por ID.
+- Transições de status.
+- Respostas HTTP da API.
+- Rejeição de JSON malformado.
+- Operações de persistência no banco de testes.
 
-Os testes verificam, entre outros comportamentos:
+Os testes utilizam o perfil `test` e um banco H2 em memória, separado do PostgreSQL da aplicação.
 
-- Criação de chamados com status inicial "Aberto".
-- Geração de números diferentes.
-- Rejeição de título e descrição vazios.
-- Cadastro seguido de consulta pela API.
-- Rejeição de JSON incompleto.
-- Resposta 404 para chamado inexistente.
-- Fluxo de atendimento até a resolução.
-- Resposta 409 para transições de status inválidas.
-- Preservação do status após uma operação recusada.
+Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para executar os testes.
 
-Os testes dos controllers usam MockMvc para simular requisições
-sem iniciar um servidor. Cada teste utiliza uma nova instância
-do serviço.
-
-Esses testes não verificam toda a inicialização e configuração
-da aplicação Spring Boot.
+O H2 permite executar a suíte de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
 
 ## Integração contínua
 
-O GitHub Actions compila o projeto e executa os testes com Java 21:
+O GitHub Actions executa a compilação e os testes em pushes e pull requests direcionados à branch `main`.
 
-- A cada push na branch `main`.
-- Em pull requests destinados à `main`.
-- Quando a execução é iniciada manualmente pela aba Actions.
+O workflow fica em:
 
-O workflow também falha se nenhum teste for encontrado.
+```text
+.github/workflows/testes.yml
+```
 
-## Limitações atuais
-
-- Os chamados ficam em memória e são perdidos ao encerrar a aplicação.
-- Terminal e API, executados separadamente, não compartilham dados.
-- A API ainda não possui autenticação ou banco de dados.
-- O armazenamento atual não possui tratamento de concorrência
-  para uso com múltiplos usuários.
+[Consultar execuções dos testes](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
 ## Próximas melhorias
 
-- Preparar o armazenamento para acessos simultâneos.
-- Adicionar persistência em banco de dados.
-- Adicionar autenticação e permissões de acesso.
-- Criar testes de integração da aplicação completa.
+- Evoluir a validação e padronizar as respostas de erro.
+- Adicionar filtros e paginação.
+- Versionar alterações do banco com migrações.
+- Criar uma interface web para consumir a API.
+- Evoluir o projeto para uma aplicação full stack.
 
 ## Autor
 
-Guilherme Tonelli
+**Guilherme Douglas Augusto Tonelli**
+
+Estudante de Análise e Desenvolvimento de Sistemas
 
 - [GitHub](https://github.com/Guilherme-Tonellidev)
 - [LinkedIn](https://www.linkedin.com/in/guilherme-tonelli-473584423)
