@@ -1,20 +1,44 @@
 package br.com.guilhermetonelli.chamados;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "chamados")
 public class Chamado {
 
-    private int id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(nullable = false, columnDefinition = "text")
     private String titulo;
+
+    @Column(nullable = false, columnDefinition = "text")
     private String descricao;
+
+    @Column(nullable = false)
     private String status;
 
-    public Chamado(int id, String titulo, String descricao) {
-        this.id = id;
+    protected Chamado() {
+    }
+
+    public Chamado(String titulo, String descricao) {
         this.titulo = titulo;
         this.descricao = descricao;
         this.status = "Aberto";
     }
 
-    public int getId() {
+    public Chamado(int id, String titulo, String descricao) {
+        this(titulo, descricao);
+        this.id = id;
+    }
+
+    public Integer getId() {
         return id;
     }
 

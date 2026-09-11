@@ -1,16 +1,22 @@
 package br.com.guilhermetonelli.chamados;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class ChamadoService {
 
-    private final List<Chamado> chamados = new ArrayList<>();
-    private int proximoId = 1;
+    private final ChamadoRepository repository;
 
+    public ChamadoService(ChamadoRepository repository) {
+        this.repository = repository;
+    }
+
+    @Transactional
     public Chamado abrirChamado(String titulo, String descricao) {
         if (titulo == null || titulo.trim().isEmpty()) {
             throw new IllegalArgumentException(
@@ -25,40 +31,35 @@ public class ChamadoService {
         }
 
         Chamado chamado = new Chamado(
-            proximoId,
             titulo.trim(),
             descricao.trim()
         );
 
-        chamados.add(chamado);
-        proximoId++;
-
-        return chamado;
+        return repository.save(chamado);
     }
 
     public List<Chamado> listarChamados() {
-        return new ArrayList<>(chamados);
+        return repository.findAll(Sort.by("id"));
     }
 
     public Chamado buscarChamadoPorId(int id) {
-        for (Chamado chamado : chamados) {
-            if (chamado.getId() == id) {
-                return chamado;
-            }
-        }
-
-        throw new IllegalArgumentException(
-            "Chamado não encontrado."
-        );
+        return repository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Chamado não encontrado."
+            ));
     }
 
+    @Transactional
     public void iniciarAtendimento(int id) {
         Chamado chamado = buscarChamadoPorId(id);
         chamado.iniciarAtendimento();
+        repository.save(chamado);
     }
 
+    @Transactional
     public void resolverChamado(int id) {
         Chamado chamado = buscarChamadoPorId(id);
         chamado.resolver();
+        repository.save(chamado);
     }
 }

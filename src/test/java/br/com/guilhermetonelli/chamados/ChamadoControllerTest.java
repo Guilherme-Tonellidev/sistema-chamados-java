@@ -1,28 +1,12 @@
 package br.com.guilhermetonelli.chamados;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class ChamadoControllerTest {
-
-    private MockMvc mockMvc;
-
-    @BeforeEach
-    void preparar() {
-        ChamadoService service = new ChamadoService();
-        ChamadoController controller = new ChamadoController(service);
-
-        mockMvc = MockMvcBuilders
-            .standaloneSetup(controller)
-            .build();
-    }
+public class ChamadoControllerTest extends BaseIntegracaoTest {
 
     @Test
     void deveRetornarListaVaziaComStatus200() throws Exception {
@@ -49,7 +33,7 @@ public class ChamadoControllerTest {
                     .content(dados)
             )
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.id").isNumber())
             .andExpect(
                 jsonPath("$.titulo").value("Computador sem internet")
             )
@@ -59,10 +43,12 @@ public class ChamadoControllerTest {
             )
             .andExpect(jsonPath("$.status").value("Aberto"));
 
+        int id = service.listarChamados().get(0).getId();
+
         mockMvc.perform(get("/chamados"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[0].id").value(id))
             .andExpect(
                 jsonPath("$[0].titulo").value("Computador sem internet")
             )
@@ -71,17 +57,15 @@ public class ChamadoControllerTest {
 
     @Test
     void deveRecusarTituloVazioComStatus400() throws Exception {
-        String dados = """
-            {
-                "titulo": "   ",
-                "descricao": "Descricao valida."
-            }
-            """;
-
         mockMvc.perform(
                 post("/chamados")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(dados)
+                    .content("""
+                        {
+                            "titulo": "   ",
+                            "descricao": "Descricao valida."
+                        }
+                        """)
             )
             .andExpect(status().isBadRequest())
             .andExpect(
@@ -95,17 +79,15 @@ public class ChamadoControllerTest {
 
     @Test
     void deveRecusarDescricaoVaziaComStatus400() throws Exception {
-        String dados = """
-            {
-                "titulo": "Problema no teclado",
-                "descricao": ""
-            }
-            """;
-
         mockMvc.perform(
                 post("/chamados")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(dados)
+                    .content("""
+                        {
+                            "titulo": "Problema no teclado",
+                            "descricao": ""
+                        }
+                        """)
             )
             .andExpect(status().isBadRequest())
             .andExpect(
@@ -120,12 +102,10 @@ public class ChamadoControllerTest {
 
     @Test
     void deveRecusarJsonIncompletoComStatus400() throws Exception {
-        String dados = "{\"titulo\":";
-
         mockMvc.perform(
                 post("/chamados")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(dados)
+                    .content("{\"titulo\":")
             )
             .andExpect(status().isBadRequest());
 

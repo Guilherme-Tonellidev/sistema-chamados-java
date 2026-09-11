@@ -1,37 +1,23 @@
 package br.com.guilhermetonelli.chamados;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class ChamadoStatusControllerTest {
+public class ChamadoStatusControllerTest extends BaseIntegracaoTest {
 
-    private MockMvc mockMvc;
-    private int id;
-
-    @BeforeEach
-    void preparar() {
-        ChamadoService service = new ChamadoService();
-
-        Chamado chamado = service.abrirChamado(
+    private int criarChamado() {
+        return service.abrirChamado(
             "Problema no teclado",
             "Algumas teclas não funcionam."
-        );
-
-        id = chamado.getId();
-
-        mockMvc = MockMvcBuilders
-            .standaloneSetup(new ChamadoController(service))
-            .build();
+        ).getId();
     }
 
     @Test
     void deveBuscarChamadoPeloNumero() throws Exception {
+        int id = criarChamado();
+
         mockMvc.perform(get("/chamados/{id}", id))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(id))
@@ -43,32 +29,30 @@ public class ChamadoStatusControllerTest {
 
     @Test
     void deveRetornar404ParaChamadoInexistente() throws Exception {
-        mockMvc.perform(get("/chamados/999"))
+        mockMvc.perform(get("/chamados/-1"))
             .andExpect(status().isNotFound())
             .andExpect(
                 jsonPath("$.erro").value("Chamado não encontrado.")
             );
 
-        mockMvc.perform(patch("/chamados/999/atendimento"))
+        mockMvc.perform(patch("/chamados/-1/atendimento"))
             .andExpect(status().isNotFound());
 
-        mockMvc.perform(patch("/chamados/999/resolucao"))
+        mockMvc.perform(patch("/chamados/-1/resolucao"))
             .andExpect(status().isNotFound());
     }
 
     @Test
     void deveIniciarAtendimentoEResolverChamado() throws Exception {
-        mockMvc.perform(
-                patch("/chamados/{id}/atendimento", id)
-            )
+        int id = criarChamado();
+
+        mockMvc.perform(patch("/chamados/{id}/atendimento", id))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.status").value("Em atendimento")
             );
 
-        mockMvc.perform(
-                patch("/chamados/{id}/resolucao", id)
-            )
+        mockMvc.perform(patch("/chamados/{id}/resolucao", id))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("Resolvido"));
 
@@ -79,9 +63,9 @@ public class ChamadoStatusControllerTest {
 
     @Test
     void deveRecusarResolucaoDiretaSemAlterarStatus() throws Exception {
-        mockMvc.perform(
-                patch("/chamados/{id}/resolucao", id)
-            )
+        int id = criarChamado();
+
+        mockMvc.perform(patch("/chamados/{id}/resolucao", id))
             .andExpect(status().isConflict())
             .andExpect(
                 jsonPath("$.erro").value(
@@ -96,19 +80,15 @@ public class ChamadoStatusControllerTest {
 
     @Test
     void deveImpedirReinicioDeChamadoResolvido() throws Exception {
-        mockMvc.perform(
-                patch("/chamados/{id}/atendimento", id)
-            )
+        int id = criarChamado();
+
+        mockMvc.perform(patch("/chamados/{id}/atendimento", id))
             .andExpect(status().isOk());
 
-        mockMvc.perform(
-                patch("/chamados/{id}/resolucao", id)
-            )
+        mockMvc.perform(patch("/chamados/{id}/resolucao", id))
             .andExpect(status().isOk());
 
-        mockMvc.perform(
-                patch("/chamados/{id}/atendimento", id)
-            )
+        mockMvc.perform(patch("/chamados/{id}/atendimento", id))
             .andExpect(status().isConflict());
 
         mockMvc.perform(get("/chamados/{id}", id))

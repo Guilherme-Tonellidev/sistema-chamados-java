@@ -1,50 +1,37 @@
 package br.com.guilhermetonelli.chamados;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ChamadoServiceTest {
-
-    private ChamadoService service;
-
-    @BeforeEach
-    void preparar() {
-        service = new ChamadoService();
-    }
+public class ChamadoServiceTest extends BaseIntegracaoTest {
 
     @Test
     void deveCadastrarChamadoComStatusAberto() {
-        Chamado chamado = service.abrirChamado(
+        Chamado criado = service.abrirChamado(
             "Computador não liga",
             "O equipamento não responde ao botão."
         );
 
-        assertEquals("Computador não liga", chamado.getTitulo());
+        Chamado salvo = service.buscarChamadoPorId(criado.getId());
+
+        assertNotNull(salvo.getId());
+        assertEquals("Computador não liga", salvo.getTitulo());
         assertEquals(
             "O equipamento não responde ao botão.",
-            chamado.getDescricao()
+            salvo.getDescricao()
         );
-        assertEquals("Aberto", chamado.getStatus());
-        assertEquals(1, service.listarChamados().size());
-
-        assertSame(
-            chamado,
-            service.buscarChamadoPorId(chamado.getId())
-        );
+        assertEquals("Aberto", salvo.getStatus());
+        assertEquals(1, repository.count());
     }
 
     @Test
     void deveGerarNumerosDiferentesParaOsChamados() {
         Chamado primeiro = service.abrirChamado(
-            "Problema no teclado",
-            "Algumas teclas não funcionam."
+            "Teclado", "Teclas não funcionam."
         );
-
         Chamado segundo = service.abrirChamado(
-            "Problema no monitor",
-            "A tela está apagada."
+            "Monitor", "Tela apagada."
         );
 
         assertNotEquals(primeiro.getId(), segundo.getId());
@@ -58,7 +45,7 @@ public class ChamadoServiceTest {
             () -> service.abrirChamado("   ", "Descrição válida.")
         );
 
-        assertTrue(service.listarChamados().isEmpty());
+        assertEquals(0, repository.count());
     }
 
     @Test
@@ -68,63 +55,70 @@ public class ChamadoServiceTest {
             () -> service.abrirChamado("Título válido", "   ")
         );
 
-        assertTrue(service.listarChamados().isEmpty());
+        assertEquals(0, repository.count());
     }
 
     @Test
     void devePermitirFluxoDeAbertoAteResolvido() {
-        Chamado chamado = service.abrirChamado(
-            "Sem acesso à internet",
-            "O computador está sem conexão."
+        int id = service.abrirChamado(
+            "Sem internet", "Computador sem conexão."
+        ).getId();
+
+        service.iniciarAtendimento(id);
+        assertEquals(
+            "Em atendimento",
+            service.buscarChamadoPorId(id).getStatus()
         );
 
-        service.iniciarAtendimento(chamado.getId());
-
-        assertEquals("Em atendimento", chamado.getStatus());
-
-        service.resolverChamado(chamado.getId());
-
-        assertEquals("Resolvido", chamado.getStatus());
+        service.resolverChamado(id);
+        assertEquals(
+            "Resolvido",
+            service.buscarChamadoPorId(id).getStatus()
+        );
     }
 
     @Test
     void deveImpedirResolucaoDeChamadoAberto() {
-        Chamado chamado = service.abrirChamado(
-            "Impressora não imprime",
-            "Os documentos ficam na fila."
-        );
+        int id = service.abrirChamado(
+            "Impressora", "Documentos presos na fila."
+        ).getId();
 
         assertThrows(
             IllegalStateException.class,
-            () -> service.resolverChamado(chamado.getId())
+            () -> service.resolverChamado(id)
         );
 
-        assertEquals("Aberto", chamado.getStatus());
+        assertEquals(
+            "Aberto",
+            service.buscarChamadoPorId(id).getStatus()
+        );
     }
 
     @Test
     void deveImpedirReaberturaDeChamadoResolvido() {
-        Chamado chamado = service.abrirChamado(
-            "Mouse não funciona",
-            "O cursor não se movimenta."
-        );
+        int id = service.abrirChamado(
+            "Mouse", "Cursor não se movimenta."
+        ).getId();
 
-        service.iniciarAtendimento(chamado.getId());
-        service.resolverChamado(chamado.getId());
+        service.iniciarAtendimento(id);
+        service.resolverChamado(id);
 
         assertThrows(
             IllegalStateException.class,
-            () -> service.iniciarAtendimento(chamado.getId())
+            () -> service.iniciarAtendimento(id)
         );
 
-        assertEquals("Resolvido", chamado.getStatus());
+        assertEquals(
+            "Resolvido",
+            service.buscarChamadoPorId(id).getStatus()
+        );
     }
 
     @Test
     void deveInformarErroAoBuscarChamadoInexistente() {
         assertThrows(
             IllegalArgumentException.class,
-            () -> service.buscarChamadoPorId(999)
+            () -> service.buscarChamadoPorId(-1)
         );
     }
 }
