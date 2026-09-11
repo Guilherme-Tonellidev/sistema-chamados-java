@@ -1,7 +1,11 @@
 package br.com.guilhermetonelli.chamados;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChamadoRepository
         extends JpaRepository<Chamado, Integer> {
+
+    List<Chamado> findByStatusOrderByIdAsc(String status);
 }

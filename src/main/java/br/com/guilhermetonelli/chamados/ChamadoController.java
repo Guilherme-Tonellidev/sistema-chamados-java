@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,8 +24,10 @@ public class ChamadoController {
     }
 
     @GetMapping
-    public List<Chamado> listarChamados() {
-        return service.listarChamados();
+    public List<Chamado> listarChamados(
+            @RequestParam(name = "status", required = false) String status) {
+
+        return service.listarChamados(status);
     }
 
     @PostMapping

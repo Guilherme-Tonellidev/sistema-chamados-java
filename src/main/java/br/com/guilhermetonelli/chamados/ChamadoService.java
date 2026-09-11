@@ -1,6 +1,7 @@
 package br.com.guilhermetonelli.chamados;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,27 @@ public class ChamadoService {
         return repository.findAll(Sort.by("id"));
     }
 
+    public List<Chamado> listarChamados(String status) {
+        if (status == null) {
+            return listarChamados();
+        }
+
+        String statusNormalizado = normalizarStatus(status);
+
+        return repository.findByStatusOrderByIdAsc(statusNormalizado);
+    }
+
+    private String normalizarStatus(String status) {
+        return switch (status.trim().toLowerCase(Locale.ROOT)) {
+            case "aberto" -> "Aberto";
+            case "em atendimento" -> "Em atendimento";
+            case "resolvido" -> "Resolvido";
+            default -> throw new IllegalArgumentException(
+                "Status inválido. Use: Aberto, Em atendimento ou Resolvido."
+            );
+        };
+    }
+
     public Chamado buscarChamadoPorId(int id) {
         return repository.findById(id)
             .orElseThrow(ChamadoNaoEncontradoException::new);
@@ -50,14 +72,18 @@ public class ChamadoService {
     @Transactional
     public void iniciarAtendimento(int id) {
         Chamado chamado = buscarChamadoPorId(id);
+
         chamado.iniciarAtendimento();
+
         repository.save(chamado);
     }
 
     @Transactional
     public void resolverChamado(int id) {
         Chamado chamado = buscarChamadoPorId(id);
+
         chamado.resolver();
+
         repository.save(chamado);
     }
 }

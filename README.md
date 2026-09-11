@@ -239,9 +239,8 @@ Execute na raiz do projeto:
 mvn clean test
 ```
 
-A suíte atual contém **23 testes de integração**, cobrindo:
+A suíte atual contém **31 testes de integração**, cobrindo:
 
-- Respostas padronizadas para erros de cadastro, chamado inexistente, mudança de status, JSON inválido e ID não numérico.
 - Cadastro e listagem de chamados.
 - Validação de título e descrição.
 - Busca por ID.
@@ -249,6 +248,8 @@ A suíte atual contém **23 testes de integração**, cobrindo:
 - Respostas HTTP da API.
 - Rejeição de JSON malformado.
 - Operações de persistência no banco de testes.
+- Filtrar chamados por status: Aberto, Em atendimento ou Resolvido.
+- Respostas padronizadas para erros de cadastro, chamado inexistente, mudança de status, JSON inválido e ID não numérico.
 
 Os testes utilizam o perfil `test` e um banco H2 em memória, separado do PostgreSQL da aplicação.
 
