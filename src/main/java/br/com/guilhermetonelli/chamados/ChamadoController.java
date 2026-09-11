@@ -1,7 +1,6 @@
 package br.com.guilhermetonelli.chamados;
 
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,80 +28,39 @@ public class ChamadoController {
     }
 
     @PostMapping
-    public ResponseEntity<?> abrirChamado(
+    public ResponseEntity<Chamado> abrirChamado(
             @RequestBody CriarChamadoRequest dados) {
 
-        try {
-            Chamado chamado = service.abrirChamado(
-                dados.titulo(),
-                dados.descricao()
-            );
+        Chamado chamado = service.abrirChamado(
+            dados.titulo(),
+            dados.descricao()
+        );
 
-            return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(chamado);
-
-        } catch (IllegalArgumentException e) {
-            return respostaErro(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(chamado);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> buscarChamado(
+    public ResponseEntity<Chamado> buscarChamado(
             @PathVariable("id") int id) {
 
-        try {
-            Chamado chamado = service.buscarChamadoPorId(id);
-            return ResponseEntity.ok(chamado);
-
-        } catch (IllegalArgumentException e) {
-            return respostaErro(HttpStatus.NOT_FOUND, e.getMessage());
-        }
+        return ResponseEntity.ok(service.buscarChamadoPorId(id));
     }
 
     @PatchMapping("/{id}/atendimento")
-    public ResponseEntity<?> iniciarAtendimento(
+    public ResponseEntity<Chamado> iniciarAtendimento(
             @PathVariable("id") int id) {
 
-        try {
-            service.iniciarAtendimento(id);
+        service.iniciarAtendimento(id);
 
-            return ResponseEntity.ok(
-                service.buscarChamadoPorId(id)
-            );
-
-        } catch (IllegalArgumentException e) {
-            return respostaErro(HttpStatus.NOT_FOUND, e.getMessage());
-
-        } catch (IllegalStateException e) {
-            return respostaErro(HttpStatus.CONFLICT, e.getMessage());
-        }
+        return ResponseEntity.ok(service.buscarChamadoPorId(id));
     }
 
     @PatchMapping("/{id}/resolucao")
-    public ResponseEntity<?> resolverChamado(
+    public ResponseEntity<Chamado> resolverChamado(
             @PathVariable("id") int id) {
 
-        try {
-            service.resolverChamado(id);
+        service.resolverChamado(id);
 
-            return ResponseEntity.ok(
-                service.buscarChamadoPorId(id)
-            );
-
-        } catch (IllegalArgumentException e) {
-            return respostaErro(HttpStatus.NOT_FOUND, e.getMessage());
-
-        } catch (IllegalStateException e) {
-            return respostaErro(HttpStatus.CONFLICT, e.getMessage());
-        }
-    }
-
-    private ResponseEntity<Map<String, String>> respostaErro(
-            HttpStatus status, String mensagem) {
-
-        return ResponseEntity
-            .status(status)
-            .body(Map.of("erro", mensagem));
+        return ResponseEntity.ok(service.buscarChamadoPorId(id));
     }
 }

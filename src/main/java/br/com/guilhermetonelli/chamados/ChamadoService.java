@@ -44,9 +44,7 @@ public class ChamadoService {
 
     public Chamado buscarChamadoPorId(int id) {
         return repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Chamado não encontrado."
-            ));
+            .orElseThrow(ChamadoNaoEncontradoException::new);
     }
 
     @Transactional

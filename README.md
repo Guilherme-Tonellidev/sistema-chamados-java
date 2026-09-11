@@ -239,8 +239,9 @@ Execute na raiz do projeto:
 mvn clean test
 ```
 
-A suíte atual contém **18 testes de integração**, cobrindo:
+A suíte atual contém **23 testes de integração**, cobrindo:
 
+- Respostas padronizadas para erros de cadastro, chamado inexistente, mudança de status, JSON inválido e ID não numérico.
 - Cadastro e listagem de chamados.
 - Validação de título e descrição.
 - Busca por ID.
