@@ -160,6 +160,13 @@ Nesta etapa de desenvolvimento, o Hibernate cria ou atualiza as tabelas por meio
 | POST | `/chamados` | Abrir chamado | 201 |
 | PATCH | `/chamados/{id}/atendimento` | Iniciar atendimento | 200 |
 | PATCH | `/chamados/{id}/resolucao` | Resolver chamado | 200 |
+| GET | `/chamados/paginados` | Listar com paginação e filtro opcional por status | 200 |
+
+A listagem paginada aceita `pagina` (padrão 0), `tamanho` (padrão 10, entre 1 e 100) e `status` opcional.
+
+Exemplo: `/chamados/paginados?pagina=0&tamanho=10&status=Aberto`
+
+A resposta contém `chamados`, `pagina`, `tamanho`, `totalElementos`, `totalPaginas` e `temProxima`.
 
 Respostas de erro:
 
@@ -239,7 +246,7 @@ Execute na raiz do projeto:
 mvn clean test
 ```
 
-A suíte atual contém **31 testes de integração**, cobrindo:
+A suíte atual contém **38 testes de integração**, cobrindo:
 
 - Cadastro e listagem de chamados.
 - Validação de título e descrição.

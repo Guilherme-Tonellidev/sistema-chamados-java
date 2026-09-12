@@ -30,6 +30,15 @@ public class ChamadoController {
         return service.listarChamados(status);
     }
 
+    @GetMapping("/paginados")
+    public PaginaChamadosResposta listarChamadosPaginados(
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "pagina", defaultValue = "0") int pagina,
+            @RequestParam(name = "tamanho", defaultValue = "10") int tamanho) {
+
+        return service.listarChamadosPaginados(status, pagina, tamanho);
+    }
+
     @PostMapping
     public ResponseEntity<Chamado> abrirChamado(
             @RequestBody CriarChamadoRequest dados) {

@@ -3,6 +3,8 @@ package br.com.guilhermetonelli.chamados;
 import java.util.List;
 import java.util.Locale;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,9 +50,58 @@ public class ChamadoService {
             return listarChamados();
         }
 
-        String statusNormalizado = normalizarStatus(status);
+        return repository.findByStatusOrderByIdAsc(
+            normalizarStatus(status)
+        );
+    }
 
-        return repository.findByStatusOrderByIdAsc(statusNormalizado);
+    public PaginaChamadosResposta listarChamadosPaginados(
+            String status, int pagina, int tamanho) {
+
+        if (pagina < 0) {
+            throw new IllegalArgumentException(
+                "A página deve ser maior ou igual a zero."
+            );
+        }
+
+        if (tamanho < 1 || tamanho > 100) {
+            throw new IllegalArgumentException(
+                "O tamanho da página deve estar entre 1 e 100."
+            );
+        }
+
+        // O JPA utiliza um inteiro para a posição inicial da consulta.
+        if ((long) pagina * tamanho > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException(
+                "A página solicitada excede o limite permitido."
+            );
+        }
+
+        PageRequest paginacao = PageRequest.of(
+            pagina,
+            tamanho,
+            Sort.by("id").ascending()
+        );
+
+        Page<Chamado> resultado;
+
+        if (status == null) {
+            resultado = repository.findAll(paginacao);
+        } else {
+            resultado = repository.findByStatus(
+                normalizarStatus(status),
+                paginacao
+            );
+        }
+
+        return new PaginaChamadosResposta(
+            resultado.getContent(),
+            resultado.getNumber(),
+            resultado.getSize(),
+            resultado.getTotalElements(),
+            resultado.getTotalPages(),
+            resultado.hasNext()
+        );
     }
 
     private String normalizarStatus(String status) {
