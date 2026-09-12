@@ -36,6 +36,7 @@ Fluxo de status:
 - Spring Data JPA
 - PostgreSQL
 - Maven
+- Flyway
 - JUnit Jupiter
 - MockMvc
 - H2 para testes
@@ -149,7 +150,11 @@ Se não houver chamados cadastrados, a resposta será:
 []
 ```
 
-Nesta etapa de desenvolvimento, o Hibernate cria ou atualiza as tabelas por meio da configuração `ddl-auto=update`.
+A estrutura do banco é gerenciada por migrações Flyway, localizadas em 
+`src/main/resources/db/migration`. 
+O Hibernate valida a compatibilidade entre as tabelas e as entidades Java com `ddl-auto=validate`.
+
+Os testes também executam essas migrações no H2 em memória.
 
 ## Endpoints
 
