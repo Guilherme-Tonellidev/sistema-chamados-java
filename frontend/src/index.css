@@ -18,12 +18,10 @@ body {
 }
 
 button,
-select {
+select,
+input,
+textarea {
   font: inherit;
-}
-
-button,
-select {
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
@@ -40,15 +38,25 @@ button:hover:not(:disabled) {
   background: #edf2ff;
 }
 
-button:disabled {
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 button:focus-visible,
-select:focus-visible {
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
   outline: 3px solid #2563eb;
   outline-offset: 3px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
 }
 
 h1,

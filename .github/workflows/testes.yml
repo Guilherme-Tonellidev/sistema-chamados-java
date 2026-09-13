@@ -1,4 +1,4 @@
-name: Testes Java
+name: Verificacoes Java e Front-end
 
 on:
   push:
@@ -29,3 +29,32 @@ jobs:
 
       - name: Executar testes
         run: mvn --batch-mode --no-transfer-progress -DfailIfNoTests=true clean test
+
+  frontend:
+    name: Verificar e compilar front-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v6
+
+      - name: Configurar Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar codigo
+        run: npm run lint
+
+      - name: Compilar front-end
+        run: npm run build
