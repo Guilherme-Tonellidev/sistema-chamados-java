@@ -4,7 +4,7 @@
 
 Aplicação full stack para gerenciamento de chamados de suporte técnico, com API REST em Java e Spring Boot, interface React e persistência em PostgreSQL.
 
-Projeto de portfólio desenvolvido para praticar integração entre front-end e back-end, regras de negócio, persistência de dados, testes automatizados e integração contínua.
+Projeto de portfólio desenvolvido para praticar integração entre front-end e back-end, regras de negócio, persistência, testes automatizados e integração contínua.
 
 ## Funcionalidades
 
@@ -53,7 +53,8 @@ A interface apresenta a ação correspondente ao status atual. A API também val
 | Persistência | Spring Data JPA, PostgreSQL 17, Flyway |
 | Front-end | React 19, JavaScript, Vite 8, HTML e CSS |
 | Testes da API | JUnit Jupiter, MockMvc e H2 |
-| Verificação do front-end | Oxlint e build com Vite |
+| Testes da interface | Vitest, React Testing Library, jest-dom, user-event e jsdom |
+| Análise de código | Oxlint |
 | Ferramentas | Maven, Node.js 24, npm, Git e GitHub Actions |
 
 ## Organização do projeto
@@ -64,11 +65,13 @@ A interface apresenta a ação correspondente ao status atual. A API também val
 | `src/main/resources` | Configurações da API |
 | `src/main/resources/db/migration` | Migrações Flyway |
 | `src/test/java` | Testes automatizados da API |
-| `src/test/resources` | Configurações dos testes |
+| `src/test/resources` | Configurações dos testes Java |
 | `frontend/src/App.jsx` | Cadastro, listagem, filtros, paginação e mudança de status |
 | `frontend/src/App.css` | Estilos dos componentes da interface |
 | `frontend/src/index.css` | Estilos globais |
-| `frontend/vite.config.js` | Configuração do Vite e proxy de desenvolvimento |
+| `frontend/src/App.test.jsx` | Testes automatizados da interface |
+| `frontend/src/test/setup.js` | Preparação e limpeza do ambiente de testes |
+| `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
 | `.github/workflows/testes.yml` | Verificações automáticas do Java e do front-end |
 
 ### Principais componentes Java
@@ -190,9 +193,11 @@ npm run dev
 
 O comando `npm ci` instala as dependências a partir do `package-lock.json`. Nas próximas inicializações, se as dependências já estiverem instaladas e não tiverem mudado, basta executar `npm run dev`.
 
-Abra o endereço indicado pelo Vite, normalmente:
+Abra:
 
 http://localhost:5173
+
+O Vite está configurado para utilizar a porta 5173 com `strictPort: true`. Se a porta estiver ocupada, ele informará um erro em vez de escolher outra.
 
 Mantenha os terminais do back-end e do front-end em execução. Para encerrar cada aplicação, pressione `Ctrl + C` no terminal correspondente.
 
@@ -368,21 +373,60 @@ Para conferir a persistência:
 
 ## Testes e verificações
 
-### Back-end
+### Back-end — 38 testes de integração
 
-Na raiz:
+Na raiz do projeto:
 
 ```powershell
 mvn clean test
 ```
 
-A suíte atual contém **38 testes de integração**, cobrindo cadastro, consultas, validações, transições de status, filtros, paginação, persistência e respostas de erro.
+A suíte cobre cadastro, consultas, validações, transições de status, filtros, paginação, persistência e respostas de erro.
 
 Os testes utilizam o perfil `test`, H2 em memória e migrações Flyway. O banco de testes é separado do PostgreSQL da aplicação.
 
-O H2 permite executar a suíte de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
+Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para executar essa suíte.
 
-### Front-end
+O H2 permite executar os testes de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
+
+### Front-end — 10 testes automatizados
+
+Dentro de `frontend`, com as dependências instaladas:
+
+```powershell
+npm test
+```
+
+Os testes utilizam Vitest, React Testing Library, jest-dom e user-event, com ambiente DOM simulado pelo jsdom.
+
+A suíte verifica:
+
+1. Listagem e limites de navegação em uma única página.
+2. Mensagem de lista vazia.
+3. Nova tentativa após falha de conexão na listagem.
+4. Cadastro, remoção de espaços nas extremidades dos campos, limpeza do formulário e atualização da lista.
+5. Bloqueio de cadastro com campos contendo apenas espaços.
+6. Preservação dos campos quando a API rejeita o cadastro.
+7. Avanço de página e retorno à primeira página ao alterar o filtro.
+8. Início do atendimento e apresentação da ação de resolver.
+9. Resolução de chamado e remoção dos botões de alteração.
+10. Exibição de erro quando a API rejeita uma mudança de status.
+
+As chamadas `fetch` são simuladas durante os testes. A suíte não depende da API Java em execução e não acessa o PostgreSQL.
+
+Esses testes verificam o comportamento da interface com respostas simuladas. Eles não substituem testes de ponta a ponta com navegador, API e banco reais.
+
+### Modo de acompanhamento
+
+Para executar novamente os testes ao salvar alterações:
+
+```powershell
+npm run test:watch
+```
+
+Para encerrar, pressione `Ctrl + C`.
+
+### Análise de código e build
 
 Dentro de `frontend`:
 
@@ -394,9 +438,18 @@ npm run build
 - `lint`: analisa o código com Oxlint.
 - `build`: gera a versão de produção em `frontend/dist`.
 
-Essas verificações não substituem testes automatizados de comportamento da interface, que ainda não foram implementados.
+### Resumo dos comandos
 
-O cadastro e as mudanças de status também foram conferidos manualmente na interface integrada à API.
+| Diretório | Comando | Finalidade |
+|---|---|---|
+| Raiz | `mvn clean test` | Executar os testes Java |
+| Raiz | `mvn spring-boot:run` | Iniciar a API |
+| `frontend` | `npm ci` | Instalar as dependências registradas no lockfile |
+| `frontend` | `npm run dev` | Iniciar a interface em desenvolvimento |
+| `frontend` | `npm test` | Executar os testes da interface uma vez |
+| `frontend` | `npm run test:watch` | Acompanhar alterações e executar os testes novamente |
+| `frontend` | `npm run lint` | Analisar o código |
+| `frontend` | `npm run build` | Gerar o build de produção |
 
 ## Integração contínua
 
@@ -405,7 +458,7 @@ O GitHub Actions executa duas verificações independentes:
 | Verificação | Etapas |
 |---|---|
 | Compilar e testar | Configurar Java 21 e executar os testes Maven |
-| Verificar e compilar front-end | Configurar Node 24, executar `npm ci`, lint e build |
+| Verificar e compilar front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
 
 O workflow é executado em:
 
@@ -413,19 +466,28 @@ O workflow é executado em:
 - Pull requests direcionados a `main`.
 - Acionamento manual pela aba Actions.
 
+A configuração utiliza:
+
+- `actions/checkout@v6`
+- `actions/setup-java@v6`
+- `actions/setup-node@v7`
+
 Arquivo:
 
 ```text
 .github/workflows/testes.yml
 ```
 
+Os testes Java e as verificações do front-end foram executados com sucesso no GitHub Actions.
+
 [Consultar execuções no GitHub Actions](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
 ## Próximas melhorias
 
-- Adicionar testes automatizados para os fluxos da interface.
-- Adicionar autenticação e autorização.
+- Ampliar os testes da interface para cenários adicionais.
+- Adicionar testes de ponta a ponta.
 - Evoluir a organização dos componentes React.
+- Adicionar autenticação e autorização.
 - Preparar a configuração de produção e realizar o deploy.
 
 ## Autor
