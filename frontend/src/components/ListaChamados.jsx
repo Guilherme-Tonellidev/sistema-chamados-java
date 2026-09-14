@@ -11,6 +11,46 @@ const textosAcao = {
   'Em atendimento': 'Resolver chamado',
 }
 
+const formatadorData = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+function DataAbertura({ valor }) {
+  if (!valor) {
+    return (
+      <p className="subtitulo">
+        <small>Data de abertura não registrada</small>
+      </p>
+    )
+  }
+
+  const data = new Date(valor)
+
+  if (Number.isNaN(data.getTime())) {
+    return (
+      <p className="subtitulo">
+        <small>Data de abertura indisponível</small>
+      </p>
+    )
+  }
+
+  return (
+    <p className="subtitulo">
+      <small>
+        Aberto em{' '}
+        <time dateTime={data.toISOString()}>
+          {formatadorData.format(data)}
+        </time>
+      </small>
+    </p>
+  )
+}
+
 export default function ListaChamados({
   dados,
   filtro,
@@ -116,6 +156,7 @@ export default function ListaChamados({
                   <div className="acoes-formulario">
                     <div>
                       <h3>{chamado.titulo}</h3>
+                      <DataAbertura valor={chamado.dataAbertura} />
                       <p className="descricao">{chamado.descricao}</p>
                     </div>
 

@@ -1,0 +1,2 @@
+ALTER TABLE chamados
+ADD COLUMN data_abertura TIMESTAMP(6) WITH TIME ZONE;

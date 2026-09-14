@@ -1,10 +1,13 @@
 package br.com.guilhermetonelli.chamados;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -24,6 +27,9 @@ public class Chamado {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "data_abertura", updatable = false)
+    private Instant dataAbertura;
+
     protected Chamado() {
     }
 
@@ -36,6 +42,13 @@ public class Chamado {
     public Chamado(int id, String titulo, String descricao) {
         this(titulo, descricao);
         this.id = id;
+    }
+
+    @PrePersist
+    protected void registrarDataAbertura() {
+        if (dataAbertura == null) {
+            dataAbertura = Instant.now();
+        }
     }
 
     public Integer getId() {
@@ -52,6 +65,10 @@ public class Chamado {
 
     public String getStatus() {
         return status;
+    }
+
+    public Instant getDataAbertura() {
+        return dataAbertura;
     }
 
     public void iniciarAtendimento() {
