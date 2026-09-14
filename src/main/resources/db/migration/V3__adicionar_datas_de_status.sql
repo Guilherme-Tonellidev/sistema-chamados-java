@@ -1,0 +1,5 @@
+ALTER TABLE chamados
+ADD COLUMN data_inicio_atendimento TIMESTAMP(6) WITH TIME ZONE;
+
+ALTER TABLE chamados
+ADD COLUMN data_resolucao TIMESTAMP(6) WITH TIME ZONE;

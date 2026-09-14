@@ -1,10 +1,5 @@
 import Paginacao from './Paginacao'
-
-const classesStatus = {
-  Aberto: 'aberto',
-  'Em atendimento': 'atendimento',
-  Resolvido: 'resolvido',
-}
+import StatusChamado from './StatusChamado'
 
 const textosAcao = {
   Aberto: 'Iniciar atendimento',
@@ -146,11 +141,7 @@ export default function ListaChamados({
                 <li key={chamado.id} className="chamado">
                   <div className="chamado-topo">
                     <span className="identificador">#{chamado.id}</span>
-                    <span
-                      className={`status ${classesStatus[chamado.status] || ''}`}
-                    >
-                      {chamado.status}
-                    </span>
+                    <StatusChamado chamado={chamado} />
                   </div>
 
                   <div className="acoes-formulario">

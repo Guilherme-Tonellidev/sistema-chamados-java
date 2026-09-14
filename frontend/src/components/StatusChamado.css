@@ -1,0 +1,13 @@
+.status-com-data {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+
+.data-status {
+  color: var(--texto-secundario);
+  font-size: 12px;
+  line-height: 1.4;
+}

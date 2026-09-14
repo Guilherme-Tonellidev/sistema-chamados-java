@@ -30,6 +30,12 @@ public class Chamado {
     @Column(name = "data_abertura", updatable = false)
     private Instant dataAbertura;
 
+    @Column(name = "data_inicio_atendimento")
+    private Instant dataInicioAtendimento;
+
+    @Column(name = "data_resolucao")
+    private Instant dataResolucao;
+
     protected Chamado() {
     }
 
@@ -71,6 +77,14 @@ public class Chamado {
         return dataAbertura;
     }
 
+    public Instant getDataInicioAtendimento() {
+        return dataInicioAtendimento;
+    }
+
+    public Instant getDataResolucao() {
+        return dataResolucao;
+    }
+
     public void iniciarAtendimento() {
         if (!status.equals("Aberto")) {
             throw new IllegalStateException(
@@ -78,6 +92,7 @@ public class Chamado {
             );
         }
 
+        dataInicioAtendimento = Instant.now();
         status = "Em atendimento";
     }
 
@@ -88,6 +103,7 @@ public class Chamado {
             );
         }
 
+        dataResolucao = Instant.now();
         status = "Resolvido";
     }
 }
