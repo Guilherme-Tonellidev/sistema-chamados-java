@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import FormularioChamado from './components/FormularioChamado'
 import ListaChamados from './components/ListaChamados'
+import {
+  listarChamados,
+  criarChamado,
+  iniciarAtendimento,
+  resolverChamado,
+} from './services/chamadosApi'
 import './App.css'
 
 const CHAVE_TEMA = 'sistema-chamados-tema'
 
 const acoesStatus = {
   Aberto: {
-    endpoint: 'atendimento',
+    executar: iniciarAtendimento,
     sucesso: 'Atendimento iniciado',
   },
   'Em atendimento': {
-    endpoint: 'resolucao',
+    executar: resolverChamado,
     sucesso: 'Chamado resolvido',
   },
 }
@@ -56,7 +62,7 @@ export default function App() {
     try {
       localStorage.setItem(CHAVE_TEMA, tema)
     } catch {
-      // O tema continua funcionando mesmo se o navegador bloquear o armazenamento.
+      // O tema funciona mesmo se o navegador bloquear o armazenamento.
       return
     }
   }, [tema])
@@ -68,34 +74,13 @@ export default function App() {
       setCarregando(true)
       setErro('')
 
-      const parametros = new URLSearchParams({
-        pagina: String(pagina),
-        tamanho: '5',
-      })
-
-      if (filtro) {
-        parametros.set('status', filtro)
-      }
-
       try {
-        const resposta = await fetch(
-          `/api/chamados/paginados?${parametros}`,
-          { signal: controller.signal },
-        )
-
-        const resultado = await resposta.json().catch(() => null)
-
-        if (!resposta.ok) {
-          throw new Error(
-            resultado?.erro || 'Não foi possível carregar os chamados.',
-          )
-        }
-
-        if (!resultado || !Array.isArray(resultado.chamados)) {
-          throw new Error(
-            'A resposta recebida não contém uma lista de chamados.',
-          )
-        }
+        const resultado = await listarChamados({
+          pagina,
+          tamanho: 5,
+          status: filtro,
+          signal: controller.signal,
+        })
 
         if (controller.signal.aborted) {
           return
@@ -177,24 +162,10 @@ export default function App() {
     setSalvando(true)
 
     try {
-      const resposta = await fetch('/api/chamados', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          titulo: tituloLimpo,
-          descricao: descricaoLimpa,
-        }),
+      const resultado = await criarChamado({
+        titulo: tituloLimpo,
+        descricao: descricaoLimpa,
       })
-
-      const resultado = await resposta.json().catch(() => null)
-
-      if (!resposta.ok) {
-        throw new Error(
-          resultado?.erro || 'Não foi possível cadastrar o chamado.',
-        )
-      }
 
       setTitulo('')
       setDescricao('')
@@ -231,18 +202,7 @@ export default function App() {
     setSucessoCadastro('')
 
     try {
-      const resposta = await fetch(
-        `/api/chamados/${chamado.id}/${acao.endpoint}`,
-        { method: 'PATCH' },
-      )
-
-      const resultado = await resposta.json().catch(() => null)
-
-      if (!resposta.ok) {
-        throw new Error(
-          resultado?.erro || 'Não foi possível alterar o status do chamado.',
-        )
-      }
+      await acao.executar(chamado.id)
 
       setSucessoStatus(`${acao.sucesso} com sucesso! Solicitação #${chamado.id}.`)
       atualizar()
