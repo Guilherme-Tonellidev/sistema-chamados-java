@@ -3,6 +3,8 @@ import FormularioChamado from './components/FormularioChamado'
 import ListaChamados from './components/ListaChamados'
 import './App.css'
 
+const CHAVE_TEMA = 'sistema-chamados-tema'
+
 const acoesStatus = {
   Aberto: {
     endpoint: 'atendimento',
@@ -14,7 +16,19 @@ const acoesStatus = {
   },
 }
 
+function lerTemaSalvo() {
+  try {
+    return localStorage.getItem(CHAVE_TEMA) === 'escuro'
+      ? 'escuro'
+      : 'claro'
+  } catch {
+    return 'claro'
+  }
+}
+
 export default function App() {
+  const [tema, setTema] = useState(lerTemaSalvo)
+
   const [filtro, setFiltro] = useState('')
   const [pagina, setPagina] = useState(0)
   const [atualizacao, setAtualizacao] = useState(0)
@@ -34,6 +48,18 @@ export default function App() {
 
   const operacaoEmAndamento = useRef(false)
   const operacaoPendente = salvando || idEmAlteracao !== null
+  const temaEscuro = tema === 'escuro'
+
+  useEffect(() => {
+    document.documentElement.dataset.tema = tema
+
+    try {
+      localStorage.setItem(CHAVE_TEMA, tema)
+    } catch {
+      // O tema continua funcionando mesmo se o navegador bloquear o armazenamento.
+      return
+    }
+  }, [tema])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -104,6 +130,10 @@ export default function App() {
 
     return () => controller.abort()
   }, [filtro, pagina, atualizacao])
+
+  function alternarTema() {
+    setTema((atual) => (atual === 'claro' ? 'escuro' : 'claro'))
+  }
 
   function alterarFiltro(novoFiltro) {
     setCarregando(true)
@@ -239,14 +269,30 @@ export default function App() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="botao-primario"
-          onClick={atualizar}
-          disabled={carregando || operacaoPendente}
-        >
-          {carregando ? 'Carregando…' : 'Atualizar lista'}
-        </button>
+        <div className="acoes-cabecalho">
+          <button
+            type="button"
+            className="botao-tema"
+            onClick={alternarTema}
+            aria-label={
+              temaEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'
+            }
+          >
+            <span className="icone-tema" aria-hidden="true">
+              {temaEscuro ? '☀' : '☾'}
+            </span>
+            {temaEscuro ? 'Tema claro' : 'Tema escuro'}
+          </button>
+
+          <button
+            type="button"
+            className="botao-primario"
+            onClick={atualizar}
+            disabled={carregando || operacaoPendente}
+          >
+            {carregando ? 'Carregando…' : 'Atualizar lista'}
+          </button>
+        </div>
       </header>
 
       <FormularioChamado

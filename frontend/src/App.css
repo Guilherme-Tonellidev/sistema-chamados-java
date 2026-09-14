@@ -12,8 +12,29 @@
   margin-bottom: 32px;
 }
 
+.acoes-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.botao-tema {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.icone-tema {
+  font-size: 20px;
+  line-height: 1;
+}
+
 .marca {
-  color: #1d4ed8;
+  color: var(--marca);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -32,27 +53,28 @@ h2 {
 }
 
 .subtitulo {
-  color: #52627a;
+  color: var(--texto-secundario);
   line-height: 1.6;
 }
 
 .botao-primario {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: white;
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--texto-primario);
   white-space: nowrap;
 }
 
 .botao-primario:hover:not(:disabled) {
-  background: #1e40af;
+  background: var(--primario-hover);
+  border-color: var(--primario-hover);
 }
 
 .conteudo {
-  background: white;
-  border: 1px solid #dce3ee;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: 18px;
   padding: 28px;
-  box-shadow: 0 8px 30px #172b4d08;
+  box-shadow: var(--sombra);
 }
 
 .cadastro {
@@ -84,6 +106,10 @@ h2 {
   gap: 16px;
 }
 
+.acoes-formulario > div {
+  min-width: 0;
+}
+
 .acoes-formulario .subtitulo {
   font-size: 13px;
 }
@@ -94,7 +120,7 @@ h2 {
   align-items: center;
   gap: 20px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #e5eaf2;
+  border-bottom: 1px solid var(--divisor);
 }
 
 .campo {
@@ -118,7 +144,8 @@ h2 {
 
 .chamado {
   padding: 22px;
-  border: 1px solid #dce3ee;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: 12px;
 }
 
@@ -132,7 +159,7 @@ h2 {
 
 .identificador {
   font-size: 14px;
-  color: #52627a;
+  color: var(--texto-secundario);
   font-weight: 700;
 }
 
@@ -142,22 +169,22 @@ h2 {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
-  background: #eef2f6;
+  background: var(--status-fundo);
 }
 
 .aberto {
-  color: #1e40af;
-  background: #dbeafe;
+  color: var(--aberto-texto);
+  background: var(--aberto-fundo);
 }
 
 .atendimento {
-  color: #854d0e;
-  background: #fef3c7;
+  color: var(--atendimento-texto);
+  background: var(--atendimento-fundo);
 }
 
 .resolvido {
-  color: #166534;
-  background: #dcfce7;
+  color: var(--resolvido-texto);
+  background: var(--resolvido-fundo);
 }
 
 .chamado h3 {
@@ -167,7 +194,7 @@ h2 {
 }
 
 .descricao {
-  color: #52627a;
+  color: var(--texto-secundario);
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -176,16 +203,16 @@ h2 {
 .mensagem {
   padding: 48px 16px;
   text-align: center;
-  color: #52627a;
+  color: var(--texto-secundario);
 }
 
 .erro {
   margin: 24px 0;
   padding: 20px;
-  background: #fff1f2;
-  border: 1px solid #fecdd3;
+  background: var(--erro-fundo);
+  border: 1px solid var(--erro-borda);
   border-radius: 12px;
-  color: #9f1239;
+  color: var(--erro-texto);
 }
 
 .erro p {
@@ -201,9 +228,9 @@ h2 {
 }
 
 .sucesso {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
+  background: var(--sucesso-fundo);
+  border: 1px solid var(--sucesso-borda);
+  color: var(--sucesso-texto);
 }
 
 .sucesso p + p {
@@ -217,11 +244,11 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   padding-top: 20px;
-  border-top: 1px solid #e5eaf2;
+  border-top: 1px solid var(--divisor);
 }
 
 .paginacao span {
-  color: #52627a;
+  color: var(--texto-secundario);
   font-size: 14px;
   text-align: center;
 }
@@ -229,7 +256,7 @@ h2 {
 .rodape {
   padding: 24px 0;
   text-align: center;
-  color: #52627a;
+  color: var(--texto-secundario);
   font-size: 13px;
 }
 
@@ -245,11 +272,44 @@ h2 {
     align-items: stretch;
   }
 
+  .acoes-cabecalho {
+    justify-content: stretch;
+  }
+
+  .acoes-cabecalho button {
+    flex: 1;
+  }
+
   .conteudo {
     padding: 18px;
   }
 
   .paginacao button {
     padding: 10px;
+  }
+}
+/* Botão de tema compacto, acima de Atualizar lista */
+.acoes-cabecalho {
+  flex-direction: column;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.acoes-cabecalho .botao-tema {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  gap: 6px;
+}
+
+.botao-tema .icone-tema {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .acoes-cabecalho > button {
+    flex: none;
   }
 }

@@ -1,11 +1,85 @@
 :root {
+  color-scheme: light;
+
+  --fundo: #f3f6fb;
+  --superficie: #ffffff;
+  --fundo-campo: #ffffff;
+  --texto: #172b4d;
+  --texto-secundario: #52627a;
+  --placeholder: #64748b;
+
+  --borda: #dce3ee;
+  --borda-campo: #cbd5e1;
+  --divisor: #e5eaf2;
+  --sombra: 0 8px 30px #172b4d08;
+
+  --marca: #1d4ed8;
+  --primario: #1d4ed8;
+  --primario-hover: #1e40af;
+  --texto-primario: #ffffff;
+  --botao-hover: #edf2ff;
+  --foco: #2563eb;
+
+  --status-fundo: #eef2f6;
+  --aberto-texto: #1e40af;
+  --aberto-fundo: #dbeafe;
+  --atendimento-texto: #854d0e;
+  --atendimento-fundo: #fef3c7;
+  --resolvido-texto: #166534;
+  --resolvido-fundo: #dcfce7;
+
+  --erro-texto: #9f1239;
+  --erro-fundo: #fff1f2;
+  --erro-borda: #fecdd3;
+  --sucesso-texto: #166534;
+  --sucesso-fundo: #f0fdf4;
+  --sucesso-borda: #bbf7d0;
+
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #172b4d;
-  background: #f3f6fb;
+  color: var(--texto);
+  background: var(--fundo);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+
+  --fundo: #080f20;
+  --superficie: #111d35;
+  --fundo-campo: #0c162a;
+  --texto: #e8eefb;
+  --texto-secundario: #afbdd5;
+  --placeholder: #8fa2c2;
+
+  --borda: #2b3d5d;
+  --borda-campo: #405779;
+  --divisor: #293a58;
+  --sombra: 0 12px 36px #00000030;
+
+  --marca: #8bbcff;
+  --primario: #2563eb;
+  --primario-hover: #1d4ed8;
+  --texto-primario: #ffffff;
+  --botao-hover: #203351;
+  --foco: #93c5fd;
+
+  --status-fundo: #253550;
+  --aberto-texto: #b9d8ff;
+  --aberto-fundo: #193963;
+  --atendimento-texto: #fde68a;
+  --atendimento-fundo: #483717;
+  --resolvido-texto: #a7f3c3;
+  --resolvido-fundo: #153e33;
+
+  --erro-texto: #fecdd3;
+  --erro-fundo: #3b1d30;
+  --erro-borda: #814058;
+  --sucesso-texto: #a7f3c3;
+  --sucesso-fundo: #12352e;
+  --sucesso-borda: #2d6553;
 }
 
 * {
@@ -15,6 +89,9 @@
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
+  background: var(--fundo);
+  color: var(--texto);
 }
 
 button,
@@ -22,10 +99,10 @@ select,
 input,
 textarea {
   font: inherit;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--borda-campo);
   border-radius: 10px;
-  background: #ffffff;
-  color: #172b4d;
+  background: var(--fundo-campo);
+  color: var(--texto);
   padding: 11px 16px;
 }
 
@@ -35,7 +112,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: #edf2ff;
+  background: var(--botao-hover);
 }
 
 button:disabled,
@@ -50,13 +127,14 @@ button:focus-visible,
 select:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #2563eb;
+  outline: 3px solid var(--foco);
   outline-offset: 3px;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #64748b;
+  color: var(--placeholder);
+  opacity: 1;
 }
 
 h1,
