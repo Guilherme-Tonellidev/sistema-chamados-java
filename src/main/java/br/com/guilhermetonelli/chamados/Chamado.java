@@ -1,6 +1,7 @@
 package br.com.guilhermetonelli.chamados;
 
 import java.time.Instant;
+import java.util.Locale;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,6 +28,9 @@ public class Chamado {
     @Column(nullable = false)
     private String status;
 
+    @Column(nullable = false, length = 20)
+    private String prioridade;
+
     @Column(name = "data_abertura", updatable = false)
     private Instant dataAbertura;
 
@@ -40,14 +44,34 @@ public class Chamado {
     }
 
     public Chamado(String titulo, String descricao) {
+        this(titulo, descricao, null);
+    }
+
+    public Chamado(String titulo, String descricao, String prioridade) {
         this.titulo = titulo;
         this.descricao = descricao;
         this.status = "Aberto";
+        this.prioridade = normalizarPrioridade(prioridade);
     }
 
     public Chamado(int id, String titulo, String descricao) {
         this(titulo, descricao);
         this.id = id;
+    }
+
+    private static String normalizarPrioridade(String prioridade) {
+        if (prioridade == null) {
+            return "Normal";
+        }
+
+        return switch (prioridade.trim().toLowerCase(Locale.ROOT)) {
+            case "baixa" -> "Baixa";
+            case "normal" -> "Normal";
+            case "alta" -> "Alta";
+            default -> throw new IllegalArgumentException(
+                "Prioridade inválida. Use: Baixa, Normal ou Alta."
+            );
+        };
     }
 
     @PrePersist
@@ -71,6 +95,10 @@ public class Chamado {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getPrioridade() {
+        return prioridade;
     }
 
     public Instant getDataAbertura() {

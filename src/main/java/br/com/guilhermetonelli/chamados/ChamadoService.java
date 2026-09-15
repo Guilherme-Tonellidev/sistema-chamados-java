@@ -21,6 +21,13 @@ public class ChamadoService {
 
     @Transactional
     public Chamado abrirChamado(String titulo, String descricao) {
+        return abrirChamado(titulo, descricao, null);
+    }
+
+    @Transactional
+    public Chamado abrirChamado(
+            String titulo, String descricao, String prioridade) {
+
         if (titulo == null || titulo.trim().isEmpty()) {
             throw new IllegalArgumentException(
                 "O título não pode ficar vazio."
@@ -35,7 +42,8 @@ public class ChamadoService {
 
         Chamado chamado = new Chamado(
             titulo.trim(),
-            descricao.trim()
+            descricao.trim(),
+            prioridade
         );
 
         return repository.save(chamado);

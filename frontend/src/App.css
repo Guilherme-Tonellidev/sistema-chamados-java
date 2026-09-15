@@ -14,22 +14,24 @@
 
 .acoes-cabecalho {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .botao-tema {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
 .icone-tema {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -88,7 +90,8 @@ h2 {
 }
 
 .formulario input,
-.formulario textarea {
+.formulario textarea,
+.formulario select {
   width: 100%;
   min-width: 0;
 }
@@ -200,6 +203,36 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.prioridade-texto {
+  font-weight: 800;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.prioridade-baixa {
+  color: #166534;
+}
+
+.prioridade-normal {
+  color: #856000;
+}
+
+.prioridade-alta {
+  color: #b91c1c;
+}
+
+:root[data-tema="escuro"] .prioridade-baixa {
+  color: #86efac;
+}
+
+:root[data-tema="escuro"] .prioridade-normal {
+  color: #fde047;
+}
+
+:root[data-tema="escuro"] .prioridade-alta {
+  color: #fca5a5;
+}
+
 .mensagem {
   padding: 48px 16px;
   text-align: center;
@@ -272,44 +305,11 @@ h2 {
     align-items: stretch;
   }
 
-  .acoes-cabecalho {
-    justify-content: stretch;
-  }
-
-  .acoes-cabecalho button {
-    flex: 1;
-  }
-
   .conteudo {
     padding: 18px;
   }
 
   .paginacao button {
     padding: 10px;
-  }
-}
-/* Botão de tema compacto, acima de Atualizar lista */
-.acoes-cabecalho {
-  flex-direction: column;
-  align-items: flex-end;
-  flex-wrap: nowrap;
-  gap: 8px;
-}
-
-.acoes-cabecalho .botao-tema {
-  flex: none;
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 8px;
-  gap: 6px;
-}
-
-.botao-tema .icone-tema {
-  font-size: 16px;
-}
-
-@media (max-width: 640px) {
-  .acoes-cabecalho > button {
-    flex: none;
   }
 }

@@ -44,16 +44,24 @@ export async function listarChamados({
   return resultado
 }
 
-export async function criarChamado({ titulo, descricao }) {
+export async function criarChamado({
+  titulo,
+  descricao,
+  prioridade = 'Normal',
+}) {
+  const dados = { titulo, descricao }
+
+  // A API já utiliza Normal quando a prioridade não é enviada.
+  if (prioridade !== 'Normal') {
+    dados.prioridade = prioridade
+  }
+
   const resposta = await fetch(URL_BASE, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      titulo,
-      descricao,
-    }),
+    body: JSON.stringify(dados),
   })
 
   return lerResposta(

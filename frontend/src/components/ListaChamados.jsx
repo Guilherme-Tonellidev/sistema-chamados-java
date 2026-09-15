@@ -6,6 +6,12 @@ const textosAcao = {
   'Em atendimento': 'Resolver chamado',
 }
 
+const classesPrioridade = {
+  Baixa: 'prioridade-texto prioridade-baixa',
+  Normal: 'prioridade-texto prioridade-normal',
+  Alta: 'prioridade-texto prioridade-alta',
+}
+
 const formatadorData = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -147,8 +153,21 @@ export default function ListaChamados({
                   <div className="acoes-formulario">
                     <div>
                       <h3>{chamado.titulo}</h3>
+
                       <DataAbertura valor={chamado.dataAbertura} />
+
                       <p className="descricao">{chamado.descricao}</p>
+
+                      <p className="subtitulo">
+                        <small>
+                          Prioridade:{' '}
+                          <strong
+                            className={classesPrioridade[chamado.prioridade]}
+                          >
+                            {chamado.prioridade || 'Não informada'}
+                          </strong>
+                        </small>
+                      </p>
                     </div>
 
                     {textoAcao && (

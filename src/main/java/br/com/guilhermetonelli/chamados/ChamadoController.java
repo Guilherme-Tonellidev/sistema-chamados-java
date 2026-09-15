@@ -45,7 +45,8 @@ public class ChamadoController {
 
         Chamado chamado = service.abrirChamado(
             dados.titulo(),
-            dados.descricao()
+            dados.descricao(),
+            dados.prioridade()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(chamado);

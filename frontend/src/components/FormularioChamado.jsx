@@ -1,12 +1,14 @@
 export default function FormularioChamado({
   titulo,
   descricao,
+  prioridade,
   salvando,
   bloqueado,
   erro,
   sucesso,
   aoAlterarTitulo,
   aoAlterarDescricao,
+  aoAlterarPrioridade,
   aoCadastrar,
 }) {
   return (
@@ -50,6 +52,22 @@ export default function FormularioChamado({
             rows={5}
             required
           />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="prioridade">Prioridade</label>
+          <select
+            id="prioridade"
+            name="prioridade"
+            value={prioridade}
+            onChange={(event) => aoAlterarPrioridade(event.target.value)}
+            disabled={bloqueado}
+            required
+          >
+            <option value="Baixa">Baixa</option>
+            <option value="Normal">Normal</option>
+            <option value="Alta">Alta</option>
+          </select>
         </div>
 
         {erro && (

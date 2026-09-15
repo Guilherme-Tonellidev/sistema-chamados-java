@@ -44,6 +44,7 @@ export default function App() {
 
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
+  const [prioridade, setPrioridade] = useState('Normal')
   const [salvando, setSalvando] = useState(false)
   const [erroCadastro, setErroCadastro] = useState('')
   const [sucessoCadastro, setSucessoCadastro] = useState('')
@@ -165,10 +166,12 @@ export default function App() {
       const resultado = await criarChamado({
         titulo: tituloLimpo,
         descricao: descricaoLimpa,
+        prioridade,
       })
 
       setTitulo('')
       setDescricao('')
+      setPrioridade('Normal')
       setSucessoCadastro(
         resultado?.id != null
           ? `Chamado #${resultado.id} cadastrado com sucesso! Status inicial: Aberto.`
@@ -258,12 +261,14 @@ export default function App() {
       <FormularioChamado
         titulo={titulo}
         descricao={descricao}
+        prioridade={prioridade}
         salvando={salvando}
         bloqueado={operacaoPendente}
         erro={erroCadastro}
         sucesso={sucessoCadastro}
         aoAlterarTitulo={setTitulo}
         aoAlterarDescricao={setDescricao}
+        aoAlterarPrioridade={setPrioridade}
         aoCadastrar={cadastrarChamado}
       />
 
