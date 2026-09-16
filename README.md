@@ -113,6 +113,7 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `frontend/src/test/setup.js` | Preparação e limpeza do ambiente de testes |
 | `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
 | `.github/workflows/testes.yml` | Verificações automáticas do Java e do front-end |
+| `frontend/src/App.filtros.test.jsx` | Testes dos filtros combinados e da paginação |
 
 ### Principais componentes Java
 
@@ -500,7 +501,7 @@ Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para execu
 
 O H2 permite executar os testes de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
 
-### Front-end — 13 testes automatizados
+### Front-end — 19 testes automatizados
 
 Dentro de `frontend`, com as dependências instaladas:
 
@@ -518,18 +519,22 @@ A suíte verifica:
 - Limpeza do formulário após sucesso.
 - Bloqueio de cadastro com campos contendo apenas espaços.
 - Preservação dos campos após falha no cadastro.
-- Avanço de página e retorno à primeira página ao alterar o filtro de status.
 - Início do atendimento e resolução.
 - Apresentação de erro ao rejeitar uma mudança de status.
 - Cadastro com prioridades Baixa e Alta.
 - Retorno da prioridade do formulário para Normal após sucesso.
 - Preservação da prioridade selecionada após falha.
+- Envio do filtro de prioridade sem alterar a prioridade do formulário.
+- Combinação dos filtros de status e prioridade, incluindo resultados vazios.
+- Retorno à primeira página ao alterar qualquer filtro, preservando o outro.
+- Remoção de um filtro sem remover o outro.
 
-As chamadas `fetch` são simuladas. A suíte não depende da API Java em execução e não acessa o PostgreSQL.
+As chamadas `fetch` são simuladas. Os testes verificam os parâmetros enviados à API e o resultado apresentado na interface.
 
-Esses testes verificam a interface com respostas simuladas. Eles não substituem testes de ponta a ponta com navegador, API e banco reais.
+A suíte não depende da API Java em execução e não acessa o PostgreSQL. Ela não substitui testes de ponta a ponta com navegador, API e banco reais.
 
-Os filtros combinados foram também conferidos manualmente na interface. Ampliar a cobertura automatizada desse fluxo no React é uma melhoria prevista.
+Os filtros combinados também foram conferidos manualmente na interface.
+
 
 ### Modo de acompanhamento
 
@@ -595,7 +600,7 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 ## Próximas melhorias
 
-- Ampliar os testes React para filtros combinados e temas.
+- Adicionar testes React para alternância e persistência do tema.
 - Adicionar testes de ponta a ponta.
 - Adicionar autenticação e autorização.
 - Preparar a configuração de produção.
