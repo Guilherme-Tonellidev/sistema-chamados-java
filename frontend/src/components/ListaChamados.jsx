@@ -55,6 +55,7 @@ function DataAbertura({ valor }) {
 export default function ListaChamados({
   dados,
   filtro,
+  filtroPrioridade,
   carregando,
   erro,
   erroStatus,
@@ -62,6 +63,7 @@ export default function ListaChamados({
   idEmAlteracao,
   bloqueado,
   aoAlterarFiltro,
+  aoAlterarFiltroPrioridade,
   aoAtualizar,
   aoAlterarStatus,
   aoMudarPagina,
@@ -94,6 +96,21 @@ export default function ListaChamados({
             <option value="Aberto">Aberto</option>
             <option value="Em atendimento">Em atendimento</option>
             <option value="Resolvido">Resolvido</option>
+          </select>
+        </div>
+
+        <div className="campo">
+          <label htmlFor="filtro-prioridade">Filtrar por prioridade</label>
+          <select
+            id="filtro-prioridade"
+            value={filtroPrioridade}
+            onChange={(event) => aoAlterarFiltroPrioridade(event.target.value)}
+            disabled={carregando || bloqueado}
+          >
+            <option value="">Todas as prioridades</option>
+            <option value="Baixa">Baixa</option>
+            <option value="Normal">Normal</option>
+            <option value="Alta">Alta</option>
           </select>
         </div>
       </div>

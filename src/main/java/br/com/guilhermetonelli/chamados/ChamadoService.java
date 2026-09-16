@@ -50,21 +50,52 @@ public class ChamadoService {
     }
 
     public List<Chamado> listarChamados() {
-        return repository.findAll(Sort.by("id"));
+        return listarChamados(null, null);
     }
 
     public List<Chamado> listarChamados(String status) {
-        if (status == null) {
-            return listarChamados();
+        return listarChamados(status, null);
+    }
+
+    public List<Chamado> listarChamados(
+            String status, String prioridade) {
+
+        String statusNormalizado = status == null
+            ? null
+            : normalizarStatus(status);
+
+        String prioridadeNormalizada = prioridade == null
+            ? null
+            : normalizarPrioridade(prioridade);
+
+        if (statusNormalizado != null && prioridadeNormalizada != null) {
+            return repository.findByStatusAndPrioridadeOrderByIdAsc(
+                statusNormalizado,
+                prioridadeNormalizada
+            );
         }
 
-        return repository.findByStatusOrderByIdAsc(
-            normalizarStatus(status)
-        );
+        if (statusNormalizado != null) {
+            return repository.findByStatusOrderByIdAsc(statusNormalizado);
+        }
+
+        if (prioridadeNormalizada != null) {
+            return repository.findByPrioridadeOrderByIdAsc(
+                prioridadeNormalizada
+            );
+        }
+
+        return repository.findAll(Sort.by("id").ascending());
     }
 
     public PaginaChamadosResposta listarChamadosPaginados(
             String status, int pagina, int tamanho) {
+
+        return listarChamadosPaginados(status, null, pagina, tamanho);
+    }
+
+    public PaginaChamadosResposta listarChamadosPaginados(
+            String status, String prioridade, int pagina, int tamanho) {
 
         if (pagina < 0) {
             throw new IllegalArgumentException(
@@ -78,12 +109,19 @@ public class ChamadoService {
             );
         }
 
-        // O JPA utiliza um inteiro para a posição inicial da consulta.
         if ((long) pagina * tamanho > Integer.MAX_VALUE) {
             throw new IllegalArgumentException(
                 "A página solicitada excede o limite permitido."
             );
         }
+
+        String statusNormalizado = status == null
+            ? null
+            : normalizarStatus(status);
+
+        String prioridadeNormalizada = prioridade == null
+            ? null
+            : normalizarPrioridade(prioridade);
 
         PageRequest paginacao = PageRequest.of(
             pagina,
@@ -93,13 +131,24 @@ public class ChamadoService {
 
         Page<Chamado> resultado;
 
-        if (status == null) {
-            resultado = repository.findAll(paginacao);
-        } else {
-            resultado = repository.findByStatus(
-                normalizarStatus(status),
+        if (statusNormalizado != null && prioridadeNormalizada != null) {
+            resultado = repository.findByStatusAndPrioridade(
+                statusNormalizado,
+                prioridadeNormalizada,
                 paginacao
             );
+        } else if (statusNormalizado != null) {
+            resultado = repository.findByStatus(
+                statusNormalizado,
+                paginacao
+            );
+        } else if (prioridadeNormalizada != null) {
+            resultado = repository.findByPrioridade(
+                prioridadeNormalizada,
+                paginacao
+            );
+        } else {
+            resultado = repository.findAll(paginacao);
         }
 
         return new PaginaChamadosResposta(
@@ -119,6 +168,17 @@ public class ChamadoService {
             case "resolvido" -> "Resolvido";
             default -> throw new IllegalArgumentException(
                 "Status inválido. Use: Aberto, Em atendimento ou Resolvido."
+            );
+        };
+    }
+
+    private String normalizarPrioridade(String prioridade) {
+        return switch (prioridade.trim().toLowerCase(Locale.ROOT)) {
+            case "baixa" -> "Baixa";
+            case "normal" -> "Normal";
+            case "alta" -> "Alta";
+            default -> throw new IllegalArgumentException(
+                "Prioridade inválida. Use: Baixa, Normal ou Alta."
             );
         };
     }

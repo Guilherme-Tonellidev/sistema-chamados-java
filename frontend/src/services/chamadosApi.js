@@ -14,6 +14,7 @@ export async function listarChamados({
   pagina = 0,
   tamanho = 5,
   status = '',
+  prioridade = '',
   signal,
 } = {}) {
   const parametros = new URLSearchParams({
@@ -23,6 +24,10 @@ export async function listarChamados({
 
   if (status) {
     parametros.set('status', status)
+  }
+
+  if (prioridade) {
+    parametros.set('prioridade', prioridade)
   }
 
   const resposta = await fetch(

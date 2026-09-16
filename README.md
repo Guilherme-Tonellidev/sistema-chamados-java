@@ -10,40 +10,74 @@ Projeto de portfólio desenvolvido para praticar integração entre front-end e 
 
 ### Interface web
 
-- Cadastrar chamados com título e descrição.
-- Listar chamados reais da API.
-- Filtrar por status.
-- Navegar pela lista com paginação de 5 itens.
+- Cadastrar chamados com título, descrição e prioridade.
+- Listar chamados com paginação de 5 itens.
+- Filtrar por status e prioridade, separadamente ou em conjunto.
+- Retornar à primeira página ao alterar qualquer filtro.
 - Iniciar atendimento e resolver chamados.
+- Exibir a data e a hora de abertura.
+- Exibir abaixo do status a data e a hora de início do atendimento ou de resolução.
+- Destacar prioridades com cores, letras maiúsculas e negrito.
+- Alternar entre tema claro e tema escuro em azul.
+- Salvar a preferência de tema no navegador quando o armazenamento estiver disponível.
 - Atualizar a lista manualmente.
-- Exibir estados de carregamento, erro e lista vazia.
+- Apresentar estados de carregamento, erro e lista vazia.
 - Exibir mensagens de sucesso e erros retornados pela API.
-- Impedir campos vazios ou contendo apenas espaços.
-- Bloquear novos envios enquanto uma operação está em andamento.
+- Impedir o cadastro de campos vazios ou contendo apenas espaços.
+- Bloquear novos envios enquanto uma operação estiver em andamento.
 - Adaptar a disposição dos elementos para telas menores.
 
 ### API REST
 
-- Cadastrar e listar chamados.
-- Buscar um chamado pelo ID.
-- Filtrar chamados por status.
+- Cadastrar, listar e buscar chamados pelo ID.
+- Filtrar por status e prioridade, inclusive de forma combinada.
 - Listar com paginação e ordenação por ID crescente.
-- Validar campos obrigatórios e transições de status.
+- Validar campos obrigatórios, prioridades e transições de status.
+- Registrar os momentos de abertura, início do atendimento e resolução.
 - Retornar erros padronizados.
 - Persistir os chamados no PostgreSQL.
 - Gerenciar a estrutura do banco com migrações Flyway.
 
 ## Regras de negócio
 
+### Cadastro e status
+
 - Novos chamados recebem o status `Aberto`.
-- Título e descrição não podem ficar vazios.
+- Título e descrição são obrigatórios e não podem conter apenas espaços.
+- Espaços nas extremidades do título e da descrição são removidos.
 - Somente chamados abertos podem iniciar atendimento.
 - Somente chamados em atendimento podem ser resolvidos.
 - Chamados resolvidos não podem iniciar atendimento novamente.
 
-**Fluxo de status: Aberto → Em atendimento → Resolvido**
+**Fluxo: Aberto → Em atendimento → Resolvido**
 
-A interface apresenta a ação correspondente ao status atual. A API também valida as transições, inclusive quando a requisição é feita diretamente, sem utilizar a interface.
+A interface apresenta a ação correspondente ao status atual. A API também valida as transições quando a requisição é feita diretamente.
+
+### Prioridade
+
+| Prioridade | Exibição na interface |
+|---|---|
+| Baixa | **BAIXA**, em verde |
+| Normal | **NORMAL**, em amarelo/dourado |
+| Alta | **ALTA**, em vermelho |
+
+A prioridade padrão é `Normal` quando não é informada no cadastro. Valores inválidos são rejeitados pela API.
+
+As cores são adaptadas aos temas claro e escuro. O texto identifica a prioridade independentemente da cor.
+
+### Datas e horários
+
+- `dataAbertura`: registrada na criação do chamado.
+- `dataInicioAtendimento`: registrada ao iniciar o atendimento.
+- `dataResolucao`: registrada ao resolver o chamado.
+
+A data de abertura permanece abaixo do título.
+
+Durante o atendimento, a interface mostra a data e a hora de início abaixo do status `Em atendimento`. Após a resolução, esse espaço passa a mostrar a data e a hora da resolução.
+
+A data de início do atendimento continua armazenada no banco, mesmo quando deixa de aparecer na interface.
+
+Os horários são apresentados no formato brasileiro, usando o fuso horário do navegador. Registros antigos sem uma determinada data recebem uma indicação de que ela não foi registrada.
 
 ## Tecnologias
 
@@ -61,15 +95,21 @@ A interface apresenta a ação correspondente ao status atual. A API também val
 
 | Caminho | Conteúdo |
 |---|---|
-| `src/main/java/br/com/guilhermetonelli/chamados` | Código Java da aplicação |
+| `src/main/java/br/com/guilhermetonelli/chamados` | Código Java |
 | `src/main/resources` | Configurações da API |
 | `src/main/resources/db/migration` | Migrações Flyway |
 | `src/test/java` | Testes automatizados da API |
 | `src/test/resources` | Configurações dos testes Java |
-| `frontend/src/App.jsx` | Cadastro, listagem, filtros, paginação e mudança de status |
-| `frontend/src/App.css` | Estilos dos componentes da interface |
-| `frontend/src/index.css` | Estilos globais |
-| `frontend/src/App.test.jsx` | Testes automatizados da interface |
+| `frontend/src/App.jsx` | Estado da aplicação, tema, filtros e coordenação das operações |
+| `frontend/src/components/FormularioChamado.jsx` | Formulário de cadastro |
+| `frontend/src/components/ListaChamados.jsx` | Filtros e apresentação dos chamados |
+| `frontend/src/components/StatusChamado.jsx` | Status e data correspondente |
+| `frontend/src/components/Paginacao.jsx` | Navegação entre páginas |
+| `frontend/src/services/chamadosApi.js` | Requisições HTTP para a API |
+| `frontend/src/App.css` | Estilos da interface |
+| `frontend/src/index.css` | Estilos globais e temas |
+| `frontend/src/App.test.jsx` | Testes dos fluxos da interface |
+| `frontend/src/App.prioridade.test.jsx` | Testes de prioridade no cadastro |
 | `frontend/src/test/setup.js` | Preparação e limpeza do ambiente de testes |
 | `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
 | `.github/workflows/testes.yml` | Verificações automáticas do Java e do front-end |
@@ -79,26 +119,26 @@ A interface apresenta a ação correspondente ao status atual. A API também val
 | Componente | Responsabilidade |
 |---|---|
 | `ChamadosApplication` | Inicialização da aplicação Spring Boot |
-| `Chamado` | Entidade persistida e regras de mudança de status |
-| `ChamadoRepository` | Acesso aos dados com Spring Data JPA |
-| `ChamadoService` | Operações de negócio e transações |
-| `ChamadoController` | Endpoints HTTP da API |
+| `Chamado` | Entidade, prioridade, datas e regras de mudança de status |
+| `ChamadoRepository` | Acesso aos dados e consultas com filtros |
+| `ChamadoService` | Operações de negócio, validações e transações |
+| `ChamadoController` | Endpoints HTTP |
 | `CriarChamadoRequest` | Dados recebidos no cadastro |
 | `PaginaChamadosResposta` | Estrutura da resposta paginada |
 | `ChamadoNaoEncontradoException` | Exceção para chamado inexistente |
 | `ErroResposta` | Estrutura padronizada dos erros |
-| `TratadorDeErros` | Tratamento centralizado de erros da API |
+| `TratadorDeErros` | Tratamento centralizado de erros |
 | `Main` | Interface de console mantida no projeto |
 
 ## Pré-requisitos
 
 - JDK 21 para reproduzir o ambiente da integração contínua.
 - Maven 3.9.x.
-- PostgreSQL 17 instalado e em execução.
+- PostgreSQL 17 instalado.
 - Node.js 24 e npm.
 - Git.
 
-A compilação Java tem como alvo a versão 21. O ambiente local de desenvolvimento também foi utilizado com JDK 26.
+A compilação Java tem como alvo a versão 21. O ambiente local também foi utilizado com JDK 26.
 
 Os comandos abaixo utilizam PowerShell.
 
@@ -130,7 +170,7 @@ Em **Databases**, crie o banco:
 
 O usuário da aplicação não precisa ser superusuário.
 
-Se esse usuário e esse banco já estiverem configurados, reutilize-os.
+Se o usuário e o banco já estiverem configurados, reutilize-os. O serviço do PostgreSQL deve estar em execução para iniciar a API.
 
 ### 3. Configurar a conexão
 
@@ -155,17 +195,17 @@ O Flyway aplica as migrações e o Hibernate valida a compatibilidade das tabela
 
 ### 4. Executar os testes Java
 
-Na raiz do projeto, antes de iniciar a API:
+Na raiz do projeto, onde está o `pom.xml`:
 
 ```powershell
 mvn clean test
 ```
 
-A suíte utiliza H2 em memória. Não é necessário iniciar o PostgreSQL nem definir `DB_PASSWORD` para executar os testes.
+Os testes utilizam H2 em memória. Não é necessário iniciar o PostgreSQL nem definir `DB_PASSWORD` para executá-los.
 
 ### 5. Iniciar o back-end
 
-Com o PostgreSQL em execução, informe a senha no terminal da raiz:
+Com o PostgreSQL em execução, utilize um terminal na raiz do projeto:
 
 ```powershell
 $senhaBanco = Read-Host "Senha do chamados_app" -AsSecureString
@@ -173,13 +213,15 @@ $env:DB_PASSWORD = [System.Net.NetworkCredential]::new("", $senhaBanco).Password
 mvn spring-boot:run
 ```
 
-A variável permanece disponível nessa sessão do terminal. Se abrir outra sessão para iniciar a API, informe-a novamente.
+Execute o comando Maven na raiz, não dentro da pasta `frontend`.
+
+A senha permanece disponível nessa sessão do terminal. Se abrir outra sessão para iniciar a API, informe-a novamente.
 
 Não registre senhas reais no código ou em arquivos enviados ao GitHub.
 
 A API estará disponível em:
 
-http://localhost:8080/chamados
+[http://localhost:8080/chamados](http://localhost:8080/chamados)
 
 ### 6. Iniciar o front-end
 
@@ -191,17 +233,23 @@ npm ci
 npm run dev
 ```
 
-O comando `npm ci` instala as dependências a partir do `package-lock.json`. Nas próximas inicializações, se as dependências já estiverem instaladas e não tiverem mudado, basta executar `npm run dev`.
+O comando `npm ci` instala as dependências registradas no `package-lock.json`.
+
+Nas próximas inicializações, se as dependências já estiverem instaladas e não tiverem mudado, basta executar `npm run dev` dentro de `frontend`.
 
 Abra:
 
-http://localhost:5173
+[http://localhost:5173](http://localhost:5173)
 
-O Vite está configurado para utilizar a porta 5173 com `strictPort: true`. Se a porta estiver ocupada, ele informará um erro em vez de escolher outra.
+O Vite utiliza a porta 5173 com `strictPort: true`. Se a porta estiver ocupada, ele informará um erro em vez de escolher outra.
 
 Mantenha os terminais do back-end e do front-end em execução. Para encerrar cada aplicação, pressione `Ctrl + C` no terminal correspondente.
 
+Após alterar o código Java, reinicie a API para utilizar a versão atualizada.
+
 ## Comunicação entre front-end e API
+
+O arquivo `frontend/src/services/chamadosApi.js` centraliza as requisições HTTP de listagem, cadastro e mudança de status.
 
 A interface utiliza caminhos iniciados por `/api`.
 
@@ -212,30 +260,44 @@ Exemplo:
 - A interface solicita `/api/chamados`.
 - O proxy encaminha para `http://127.0.0.1:8080/chamados`.
 
-Essa configuração é exclusiva do ambiente de desenvolvimento. O projeto ainda não possui deploy configurado; a publicação exigirá definir como a interface acessará a API em produção.
+Essa configuração é exclusiva do desenvolvimento. O projeto ainda não possui deploy configurado; a publicação exigirá definir como a interface acessará a API em produção.
 
 ## Utilizando a interface
 
-1. Preencha título e descrição e clique em **Cadastrar chamado**.
-2. Consulte a lista e utilize o filtro por status.
-3. Clique em **Iniciar atendimento** em um chamado aberto.
-4. Clique em **Resolver chamado** quando ele estiver em atendimento.
-5. Chamados resolvidos permanecem disponíveis para consulta, sem botão de alteração.
+1. Preencha título, descrição e prioridade.
+2. Clique em **Cadastrar chamado**.
+3. Consulte a lista e utilize os filtros de status e prioridade.
+4. Clique em **Iniciar atendimento** em um chamado aberto.
+5. Clique em **Resolver chamado** quando ele estiver em atendimento.
+6. Use o botão de tema para alternar entre claro e escuro.
 
-Após o cadastro, o filtro e a página são mantidos. Como a ordenação é por ID crescente, o novo chamado aparece no final da lista quando o filtro permite exibi-lo.
+Chamados resolvidos permanecem disponíveis para consulta, sem botão de mudança de status.
 
-Ao alterar um status, o chamado pode deixar de aparecer no filtro selecionado. Se isso eliminar a última página, a interface ajusta a navegação para uma página válida.
+### Comportamento dos filtros
+
+Os filtros podem ser usados separadamente ou combinados.
+
+Exemplo: selecionar `Aberto` e `Alta` retorna somente chamados abertos de prioridade alta.
+
+- Alterar qualquer filtro retorna à primeira página.
+- Selecionar `Todas as prioridades` remove apenas o filtro de prioridade.
+- Selecionar `Todos os status` remove apenas o filtro de status.
+- Atualizar a lista mantém os filtros e a página.
+
+Após o cadastro, os filtros e a página também são mantidos. Como a ordenação é por ID crescente, o novo chamado aparece no final da lista quando corresponde aos filtros selecionados.
+
+Ao mudar o status, um chamado pode deixar de corresponder ao filtro. Se isso eliminar a última página, a interface ajusta a navegação para uma página válida.
 
 ## Endpoints
 
 | Método | Caminho | Operação | Sucesso |
 |---|---|---|---|
-| GET | `/chamados` | Listar chamados, com filtro opcional por status | 200 |
+| GET | `/chamados` | Listar com filtros opcionais de status e prioridade | 200 |
 | GET | `/chamados/{id}` | Buscar pelo ID | 200 |
 | POST | `/chamados` | Abrir chamado | 201 |
 | PATCH | `/chamados/{id}/atendimento` | Iniciar atendimento | 200 |
 | PATCH | `/chamados/{id}/resolucao` | Resolver chamado | 200 |
-| GET | `/chamados/paginados` | Listar com paginação e filtro opcional | 200 |
+| GET | `/chamados/paginados` | Listar com paginação e filtros opcionais | 200 |
 
 ### Cadastro
 
@@ -244,17 +306,33 @@ Corpo JSON enviado para `POST /chamados`:
 ```json
 {
   "titulo": "Computador nao liga",
-  "descricao": "O equipamento nao responde ao botao."
+  "descricao": "O equipamento nao responde ao botao.",
+  "prioridade": "Alta"
 }
 ```
 
-### Filtro por status
+Se a prioridade não for informada, a API utiliza `Normal`.
+
+### Filtros
+
+Valores aceitos:
+
+| Filtro | Valores |
+|---|---|
+| `status` | `Aberto`, `Em atendimento`, `Resolvido` |
+| `prioridade` | `Baixa`, `Normal`, `Alta` |
+
+Exemplos:
 
 ```text
 GET /chamados?status=Aberto
+GET /chamados?prioridade=Alta
+GET /chamados?status=Aberto&prioridade=Alta
 ```
 
-Valores de status: `Aberto`, `Em atendimento` e `Resolvido`.
+A API normaliza diferenças entre letras maiúsculas e minúsculas e remove espaços nas extremidades dos valores dos filtros.
+
+Para listar sem um filtro, omita o parâmetro correspondente.
 
 ### Paginação
 
@@ -263,23 +341,41 @@ Valores de status: `Aberto`, `Em atendimento` e `Resolvido`.
 | `pagina` | Índice da página, começando em zero | `0` |
 | `tamanho` | Quantidade por página, entre 1 e 100 | `10` |
 | `status` | Filtro opcional por status | Sem filtro |
+| `prioridade` | Filtro opcional por prioridade | Sem filtro |
 
 Exemplo:
 
 ```text
-GET /chamados/paginados?pagina=0&tamanho=5&status=Aberto
+GET /chamados/paginados?pagina=0&tamanho=5&status=Aberto&prioridade=Alta
 ```
 
 A resposta contém:
 
-- `chamados`
-- `pagina`
-- `tamanho`
-- `totalElementos`
-- `totalPaginas`
-- `temProxima`
+| Campo | Conteúdo |
+|---|---|
+| `chamados` | Chamados da página solicitada |
+| `pagina` | Índice da página |
+| `tamanho` | Tamanho solicitado |
+| `totalElementos` | Quantidade de chamados que correspondem aos filtros |
+| `totalPaginas` | Quantidade de páginas |
+| `temProxima` | Indica se existe uma próxima página |
 
-A interface solicita 5 itens por página.
+A interface solicita 5 itens por página. A ordenação é por ID crescente.
+
+### Dados de um chamado
+
+Os chamados retornados pela API incluem:
+
+- `id`
+- `titulo`
+- `descricao`
+- `status`
+- `prioridade`
+- `dataAbertura`
+- `dataInicioAtendimento`
+- `dataResolucao`
+
+Datas de transições que ainda não aconteceram permanecem sem valor. Registros anteriores à inclusão das datas também podem não possuir esses valores.
 
 ### Erros
 
@@ -287,7 +383,7 @@ As respostas padronizadas contêm `status`, `erro` e `caminho`.
 
 | Código | Exemplos |
 |---|---|
-| 400 Bad Request | Campos inválidos, JSON malformado ou parâmetros inválidos |
+| 400 Bad Request | Campos inválidos, prioridade inválida, JSON malformado ou parâmetros inválidos |
 | 404 Not Found | Chamado inexistente |
 | 409 Conflict | Mudança de status incompatível com o estado atual |
 
@@ -301,6 +397,7 @@ Com a API em execução, abra outro terminal e execute os exemplos na ordem, na 
 $dados = @{
     titulo = "Computador nao liga"
     descricao = "O equipamento nao responde ao botao."
+    prioridade = "Alta"
 } | ConvertTo-Json
 
 $parametrosCadastro = @{
@@ -326,6 +423,12 @@ Invoke-RestMethod -Uri "http://localhost:8080/chamados"
 Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)"
 ```
 
+### Consultar com filtros combinados
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/chamados/paginados?pagina=0&tamanho=5&status=Aberto&prioridade=Alta"
+```
+
 ### Iniciar atendimento
 
 ```powershell
@@ -338,12 +441,6 @@ Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/atendiment
 Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/resolucao" -Method Patch
 ```
 
-### Consultar uma página com filtro
-
-```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/paginados?pagina=0&tamanho=5&status=Aberto"
-```
-
 ## Persistência e migrações
 
 Os chamados são armazenados no PostgreSQL e permanecem disponíveis depois de reiniciar a aplicação.
@@ -354,15 +451,20 @@ As migrações ficam em:
 src/main/resources/db/migration
 ```
 
-A migração inicial é:
+A estrutura evoluiu pelas seguintes versões:
 
-```text
-V1__criar_tabela_chamados.sql
-```
+| Versão | Alteração |
+|---|---|
+| V1 | Criação da tabela `chamados` |
+| V2 | Inclusão da data de abertura |
+| V3 | Inclusão das datas de início do atendimento e resolução |
+| V4 | Inclusão da prioridade, com valor padrão `Normal` |
 
-O Hibernate utiliza `ddl-auto=validate`. Alterações na estrutura do banco devem ser realizadas por novas migrações versionadas, sem editar a V1 já aplicada.
+O Hibernate utiliza `ddl-auto=validate`. Alterações na estrutura do banco devem ser realizadas por novas migrações versionadas, sem editar migrações já aplicadas.
 
 O banco existente do ambiente de desenvolvimento já foi adotado pelo Flyway com baseline 0. Essa adoção não deve ser repetida. Uma instalação nova com banco vazio utiliza as migrações normalmente.
+
+A adição dos filtros combinados reutiliza as colunas existentes e não exige uma nova migração.
 
 Para conferir a persistência:
 
@@ -373,7 +475,7 @@ Para conferir a persistência:
 
 ## Testes e verificações
 
-### Back-end — 38 testes de integração
+### Back-end — 58 testes de integração
 
 Na raiz do projeto:
 
@@ -381,7 +483,16 @@ Na raiz do projeto:
 mvn clean test
 ```
 
-A suíte cobre cadastro, consultas, validações, transições de status, filtros, paginação, persistência e respostas de erro.
+A suíte cobre:
+
+- Cadastro, listagem e busca por ID.
+- Validação dos campos e das prioridades.
+- Transições de status.
+- Registro das datas.
+- Filtros por status e prioridade.
+- Combinação dos filtros.
+- Paginação, ordenação e resultados vazios.
+- Persistência e respostas padronizadas de erro.
 
 Os testes utilizam o perfil `test`, H2 em memória e migrações Flyway. O banco de testes é separado do PostgreSQL da aplicação.
 
@@ -389,7 +500,7 @@ Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para execu
 
 O H2 permite executar os testes de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
 
-### Front-end — 10 testes automatizados
+### Front-end — 13 testes automatizados
 
 Dentro de `frontend`, com as dependências instaladas:
 
@@ -401,20 +512,24 @@ Os testes utilizam Vitest, React Testing Library, jest-dom e user-event, com amb
 
 A suíte verifica:
 
-1. Listagem e limites de navegação em uma única página.
-2. Mensagem de lista vazia.
-3. Nova tentativa após falha de conexão na listagem.
-4. Cadastro, remoção de espaços nas extremidades dos campos, limpeza do formulário e atualização da lista.
-5. Bloqueio de cadastro com campos contendo apenas espaços.
-6. Preservação dos campos quando a API rejeita o cadastro.
-7. Avanço de página e retorno à primeira página ao alterar o filtro.
-8. Início do atendimento e apresentação da ação de resolver.
-9. Resolução de chamado e remoção dos botões de alteração.
-10. Exibição de erro quando a API rejeita uma mudança de status.
+- Listagem, lista vazia e limites de paginação.
+- Nova tentativa após falha de conexão.
+- Cadastro e remoção de espaços nas extremidades dos campos.
+- Limpeza do formulário após sucesso.
+- Bloqueio de cadastro com campos contendo apenas espaços.
+- Preservação dos campos após falha no cadastro.
+- Avanço de página e retorno à primeira página ao alterar o filtro de status.
+- Início do atendimento e resolução.
+- Apresentação de erro ao rejeitar uma mudança de status.
+- Cadastro com prioridades Baixa e Alta.
+- Retorno da prioridade do formulário para Normal após sucesso.
+- Preservação da prioridade selecionada após falha.
 
-As chamadas `fetch` são simuladas durante os testes. A suíte não depende da API Java em execução e não acessa o PostgreSQL.
+As chamadas `fetch` são simuladas. A suíte não depende da API Java em execução e não acessa o PostgreSQL.
 
-Esses testes verificam o comportamento da interface com respostas simuladas. Eles não substituem testes de ponta a ponta com navegador, API e banco reais.
+Esses testes verificam a interface com respostas simuladas. Eles não substituem testes de ponta a ponta com navegador, API e banco reais.
+
+Os filtros combinados foram também conferidos manualmente na interface. Ampliar a cobertura automatizada desse fluxo no React é uma melhoria prevista.
 
 ### Modo de acompanhamento
 
@@ -438,16 +553,18 @@ npm run build
 - `lint`: analisa o código com Oxlint.
 - `build`: gera a versão de produção em `frontend/dist`.
 
+Gerar o build não publica a aplicação.
+
 ### Resumo dos comandos
 
 | Diretório | Comando | Finalidade |
 |---|---|---|
 | Raiz | `mvn clean test` | Executar os testes Java |
 | Raiz | `mvn spring-boot:run` | Iniciar a API |
-| `frontend` | `npm ci` | Instalar as dependências registradas no lockfile |
+| `frontend` | `npm ci` | Instalar as dependências do lockfile |
 | `frontend` | `npm run dev` | Iniciar a interface em desenvolvimento |
-| `frontend` | `npm test` | Executar os testes da interface uma vez |
-| `frontend` | `npm run test:watch` | Acompanhar alterações e executar os testes novamente |
+| `frontend` | `npm test` | Executar os testes da interface |
+| `frontend` | `npm run test:watch` | Executar testes ao salvar alterações |
 | `frontend` | `npm run lint` | Analisar o código |
 | `frontend` | `npm run build` | Gerar o build de produção |
 
@@ -457,8 +574,8 @@ O GitHub Actions executa duas verificações independentes:
 
 | Verificação | Etapas |
 |---|---|
-| Compilar e testar | Configurar Java 21 e executar os testes Maven |
-| Verificar e compilar front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
+| Java | Configurar Java 21 e executar os testes Maven |
+| Front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
 
 O workflow é executado em:
 
@@ -466,29 +583,23 @@ O workflow é executado em:
 - Pull requests direcionados a `main`.
 - Acionamento manual pela aba Actions.
 
-A configuração utiliza:
-
-- `actions/checkout@v6`
-- `actions/setup-java@v6`
-- `actions/setup-node@v7`
-
-Arquivo:
+A configuração fica em:
 
 ```text
 .github/workflows/testes.yml
 ```
 
-Os testes Java e as verificações do front-end foram executados com sucesso no GitHub Actions.
+O badge no início deste README indica o resultado do workflow no GitHub.
 
 [Consultar execuções no GitHub Actions](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
 ## Próximas melhorias
 
-- Ampliar os testes da interface para cenários adicionais.
+- Ampliar os testes React para filtros combinados e temas.
 - Adicionar testes de ponta a ponta.
-- Evoluir a organização dos componentes React.
 - Adicionar autenticação e autorização.
-- Preparar a configuração de produção e realizar o deploy.
+- Preparar a configuração de produção.
+- Realizar o deploy da aplicação.
 
 ## Autor
 

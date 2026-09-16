@@ -11,5 +11,23 @@ public interface ChamadoRepository
 
     List<Chamado> findByStatusOrderByIdAsc(String status);
 
+    List<Chamado> findByPrioridadeOrderByIdAsc(String prioridade);
+
+    List<Chamado> findByStatusAndPrioridadeOrderByIdAsc(
+        String status,
+        String prioridade
+    );
+
     Page<Chamado> findByStatus(String status, Pageable pageable);
+
+    Page<Chamado> findByPrioridade(
+        String prioridade,
+        Pageable pageable
+    );
+
+    Page<Chamado> findByStatusAndPrioridade(
+        String status,
+        String prioridade,
+        Pageable pageable
+    );
 }

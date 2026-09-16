@@ -36,6 +36,7 @@ export default function App() {
   const [tema, setTema] = useState(lerTemaSalvo)
 
   const [filtro, setFiltro] = useState('')
+  const [filtroPrioridade, setFiltroPrioridade] = useState('')
   const [pagina, setPagina] = useState(0)
   const [atualizacao, setAtualizacao] = useState(0)
   const [dados, setDados] = useState(null)
@@ -70,6 +71,7 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController()
+    let ajustandoPagina = false
 
     async function carregarChamados() {
       setCarregando(true)
@@ -80,6 +82,7 @@ export default function App() {
           pagina,
           tamanho: 5,
           status: filtro,
+          prioridade: filtroPrioridade,
           signal: controller.signal,
         })
 
@@ -91,6 +94,7 @@ export default function App() {
         const ultimaPagina = Math.max(0, resultado.totalPaginas - 1)
 
         if (pagina > ultimaPagina) {
+          ajustandoPagina = true
           setPagina(ultimaPagina)
           return
         }
@@ -106,7 +110,7 @@ export default function App() {
           )
         }
       } finally {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && !ajustandoPagina) {
           setCarregando(false)
         }
       }
@@ -115,15 +119,29 @@ export default function App() {
     carregarChamados()
 
     return () => controller.abort()
-  }, [filtro, pagina, atualizacao])
+  }, [filtro, filtroPrioridade, pagina, atualizacao])
 
   function alternarTema() {
     setTema((atual) => (atual === 'claro' ? 'escuro' : 'claro'))
   }
 
   function alterarFiltro(novoFiltro) {
+    if (novoFiltro === filtro) {
+      return
+    }
+
     setCarregando(true)
     setFiltro(novoFiltro)
+    setPagina(0)
+  }
+
+  function alterarFiltroPrioridade(novaPrioridade) {
+    if (novaPrioridade === filtroPrioridade) {
+      return
+    }
+
+    setCarregando(true)
+    setFiltroPrioridade(novaPrioridade)
     setPagina(0)
   }
 
@@ -275,6 +293,7 @@ export default function App() {
       <ListaChamados
         dados={dados}
         filtro={filtro}
+        filtroPrioridade={filtroPrioridade}
         carregando={carregando}
         erro={erro}
         erroStatus={erroStatus}
@@ -282,6 +301,7 @@ export default function App() {
         idEmAlteracao={idEmAlteracao}
         bloqueado={operacaoPendente}
         aoAlterarFiltro={alterarFiltro}
+        aoAlterarFiltroPrioridade={alterarFiltroPrioridade}
         aoAtualizar={atualizar}
         aoAlterarStatus={alterarStatus}
         aoMudarPagina={mudarPagina}

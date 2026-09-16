@@ -25,18 +25,25 @@ public class ChamadoController {
 
     @GetMapping
     public List<Chamado> listarChamados(
-            @RequestParam(name = "status", required = false) String status) {
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "prioridade", required = false) String prioridade) {
 
-        return service.listarChamados(status);
+        return service.listarChamados(status, prioridade);
     }
 
     @GetMapping("/paginados")
     public PaginaChamadosResposta listarChamadosPaginados(
             @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "prioridade", required = false) String prioridade,
             @RequestParam(name = "pagina", defaultValue = "0") int pagina,
             @RequestParam(name = "tamanho", defaultValue = "10") int tamanho) {
 
-        return service.listarChamadosPaginados(status, pagina, tamanho);
+        return service.listarChamadosPaginados(
+            status,
+            prioridade,
+            pagina,
+            tamanho
+        );
     }
 
     @PostMapping
