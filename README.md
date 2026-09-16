@@ -114,6 +114,7 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
 | `.github/workflows/testes.yml` | Verificações automáticas do Java e do front-end |
 | `frontend/src/App.filtros.test.jsx` | Testes dos filtros combinados e da paginação |
+| `frontend/src/App.tema.test.jsx` | Testes da alternância, persistência e falhas de armazenamento do tema |
 
 ### Principais componentes Java
 
@@ -501,7 +502,7 @@ Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para execu
 
 O H2 permite executar os testes de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
 
-### Front-end — 19 testes automatizados
+### Front-end — 27 testes automatizados
 
 Dentro de `frontend`, com as dependências instaladas:
 
@@ -528,6 +529,11 @@ A suíte verifica:
 - Combinação dos filtros de status e prioridade, incluindo resultados vazios.
 - Retorno à primeira página ao alterar qualquer filtro, preservando o outro.
 - Remoção de um filtro sem remover o outro.
+- Tema claro quando não há preferência salva ou o valor salvo é inválido.
+- Recuperação das preferências de tema claro e escuro.
+- Alternância entre temas, atualização do botão e gravação da preferência.
+- Recuperação da escolha ao montar a aplicação novamente.
+- Funcionamento do tema quando a leitura ou a gravação no armazenamento falha.
 
 As chamadas `fetch` são simuladas. Os testes verificam os parâmetros enviados à API e o resultado apresentado na interface.
 
@@ -600,7 +606,8 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 ## Próximas melhorias
 
-- Adicionar testes React para alternância e persistência do tema.
+## Próximas melhorias
+
 - Adicionar testes de ponta a ponta.
 - Adicionar autenticação e autorização.
 - Preparar a configuração de produção.
