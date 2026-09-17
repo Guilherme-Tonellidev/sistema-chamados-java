@@ -54,7 +54,7 @@ async function localizarChamado(page, titulo) {
   return page.getByRole('listitem').filter({ has: cabecalho })
 }
 
-test('cadastra um chamado e mantém sua apresentação após recarregar', async ({
+test('cadastra, inicia atendimento e resolve um chamado, mantendo os dados após recarregar', async ({
   page,
 }) => {
   const titulo = `Teste E2E ${randomUUID()}`
@@ -66,7 +66,7 @@ test('cadastra um chamado e mantém sua apresentação após recarregar', async 
   await page.getByLabel('Título', { exact: true }).fill(titulo)
   await page.getByLabel('Descrição', { exact: true }).fill(descricao)
 
-  const respostaPendente = page.waitForResponse((resposta) => {
+  const cadastroPendente = page.waitForResponse((resposta) => {
     const url = new URL(resposta.url())
 
     return (
@@ -80,10 +80,10 @@ test('cadastra um chamado e mantém sua apresentação após recarregar', async 
     exact: true,
   }).click()
 
-  const resposta = await respostaPendente
-  expect(resposta.status()).toBe(201)
+  const respostaCadastro = await cadastroPendente
+  expect(respostaCadastro.status()).toBe(201)
 
-  const chamado = await resposta.json()
+  const chamado = await respostaCadastro.json()
 
   await expect(
     page.getByText(
@@ -95,20 +95,126 @@ test('cadastra um chamado e mantém sua apresentação após recarregar', async 
   await expect(page.getByLabel('Título', { exact: true })).toHaveValue('')
   await expect(page.getByLabel('Descrição', { exact: true })).toHaveValue('')
 
-  const item = await localizarChamado(page, titulo)
+  const itemCadastrado = await localizarChamado(page, titulo)
 
-  await expect(item.getByText(descricao, { exact: true })).toBeVisible()
-  await expect(item.getByText('Aberto', { exact: true })).toBeVisible()
+  await expect(
+    itemCadastrado.getByText(descricao, { exact: true }),
+  ).toBeVisible()
 
+  await expect(
+    itemCadastrado.getByText('Aberto', { exact: true }),
+  ).toBeVisible()
+
+  // Confere o cadastro após uma nova leitura da API.
   await page.reload()
 
-  const itemAposRecarga = await localizarChamado(page, titulo)
+  const itemAberto = await localizarChamado(page, titulo)
 
   await expect(
-    itemAposRecarga.getByText(descricao, { exact: true }),
+    itemAberto.getByText(descricao, { exact: true }),
   ).toBeVisible()
 
   await expect(
-    itemAposRecarga.getByText('Aberto', { exact: true }),
+    itemAberto.getByText('Aberto', { exact: true }),
   ).toBeVisible()
+
+  const atendimentoPendente = page.waitForResponse((resposta) => {
+    const url = new URL(resposta.url())
+
+    return (
+      url.pathname === `/api/chamados/${chamado.id}/atendimento` &&
+      resposta.request().method() === 'PATCH'
+    )
+  })
+
+  await itemAberto.getByRole('button', {
+    name: `Iniciar atendimento: chamado #${chamado.id}`,
+    exact: true,
+  }).click()
+
+  const respostaAtendimento = await atendimentoPendente
+  expect(respostaAtendimento.status()).toBe(200)
+
+  await expect(
+    page.getByText(
+      `Atendimento iniciado com sucesso! Solicitação #${chamado.id}.`,
+      { exact: true },
+    ),
+  ).toBeVisible()
+
+  await aguardarLista(page)
+
+  await expect(
+    itemAberto.getByText('Em atendimento', { exact: true }),
+  ).toBeVisible()
+
+  await expect(
+    itemAberto.getByRole('button', {
+      name: `Iniciar atendimento: chamado #${chamado.id}`,
+      exact: true,
+    }),
+  ).toHaveCount(0)
+
+  await expect(
+    itemAberto.getByRole('button', {
+      name: `Resolver chamado: chamado #${chamado.id}`,
+      exact: true,
+    }),
+  ).toBeEnabled()
+
+  // Confere se o atendimento continua registrado após recarregar.
+  await page.reload()
+
+  const itemEmAtendimento = await localizarChamado(page, titulo)
+
+  await expect(
+    itemEmAtendimento.getByText('Em atendimento', { exact: true }),
+  ).toBeVisible()
+
+  const resolucaoPendente = page.waitForResponse((resposta) => {
+    const url = new URL(resposta.url())
+
+    return (
+      url.pathname === `/api/chamados/${chamado.id}/resolucao` &&
+      resposta.request().method() === 'PATCH'
+    )
+  })
+
+  await itemEmAtendimento.getByRole('button', {
+    name: `Resolver chamado: chamado #${chamado.id}`,
+    exact: true,
+  }).click()
+
+  const respostaResolucao = await resolucaoPendente
+  expect(respostaResolucao.status()).toBe(200)
+
+  await expect(
+    page.getByText(
+      `Chamado resolvido com sucesso! Solicitação #${chamado.id}.`,
+      { exact: true },
+    ),
+  ).toBeVisible()
+
+  await aguardarLista(page)
+
+  await expect(
+    itemEmAtendimento.getByText('Resolvido', { exact: true }),
+  ).toBeVisible()
+
+  await expect(itemEmAtendimento.getByRole('button')).toHaveCount(0)
+
+  // Confere o resultado final após recarregar.
+  await page.reload()
+
+  const itemResolvido = await localizarChamado(page, titulo)
+
+  await expect(
+    itemResolvido.getByText(descricao, { exact: true }),
+  ).toBeVisible()
+
+  await expect(
+    itemResolvido.getByText('Resolvido', { exact: true }),
+  ).toBeVisible()
+
+  await expect(itemResolvido.getByRole('button')).toHaveCount(0)
 })
