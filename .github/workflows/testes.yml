@@ -61,3 +61,86 @@ jobs:
 
       - name: Compilar front-end
         run: npm run build
+
+  e2e:
+    name: Testar cadastro no navegador
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v6
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Configurar Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias do front-end
+        working-directory: frontend
+        run: npm ci
+
+      - name: Instalar Chromium e dependencias do sistema
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Compilar API e recursos de testes
+        run: mvn --batch-mode --no-transfer-progress test-compile
+
+      - name: Iniciar API H2 e executar Playwright
+        shell: bash
+        run: |
+          mvn --batch-mode --no-transfer-progress spring-boot:test-run \
+            -Dspring-boot.run.profiles=e2e \
+            > "$RUNNER_TEMP/api-e2e.log" 2>&1 &
+
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+
+          api_pronta=false
+
+          for tentativa in {1..120}; do
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              echo "A API encerrou antes de ficar disponivel."
+              cat "$RUNNER_TEMP/api-e2e.log"
+              exit 1
+            fi
+
+            if curl --fail --silent --max-time 2 \
+              http://127.0.0.1:8081/chamados \
+              > /dev/null; then
+              api_pronta=true
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$api_pronta" != "true" ]; then
+            echo "A API nao ficou disponivel dentro do prazo."
+            cat "$RUNNER_TEMP/api-e2e.log"
+            exit 1
+          fi
+
+          cd frontend
+          npx playwright test
+
+      - name: Guardar diagnosticos em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosticos-e2e
+          path: |
+            ${{ runner.temp }}/api-e2e.log
+            frontend/e2e/resultados/
+          if-no-files-found: ignore
+          retention-days: 7

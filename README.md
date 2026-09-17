@@ -587,8 +587,7 @@ Em caso de falha, os arquivos de diagnóstico ficam em `frontend/e2e/resultados`
 
 Esse teste verifica a integração com H2; não substitui a verificação com PostgreSQL. Recarregar a página também não equivale a reiniciar a API.
 
-Os 27 testes React continuam sendo executados separadamente por `npm test`. Por enquanto, o teste Playwright é executado localmente e ainda não faz parte do GitHub Actions.
-
+Os 27 testes React continuam sendo executados separadamente por `npm test`. O teste Playwright também é executado pelo GitHub Actions, em um job independente que prepara o Chromium, inicia a API com H2 e executa o teste no navegador.
 
 ### Modo de acompanhamento
 
@@ -616,25 +615,27 @@ Gerar o build não publica a aplicação.
 
 ### Resumo dos comandos
 
-| Diretório | Comando | Finalidade |
-|---|---|---|
-| Raiz | `mvn clean test` | Executar os testes Java |
-| Raiz | `mvn spring-boot:run` | Iniciar a API |
-| `frontend` | `npm ci` | Instalar as dependências do lockfile |
-| `frontend` | `npm run dev` | Iniciar a interface em desenvolvimento |
-| `frontend` | `npm test` | Executar os testes da interface |
-| `frontend` | `npm run test:watch` | Executar testes ao salvar alterações |
-| `frontend` | `npm run lint` | Analisar o código |
-| `frontend` | `npm run build` | Gerar o build de produção |
-
-## Integração contínua
-
-O GitHub Actions executa duas verificações independentes:
+O GitHub Actions executa três verificações independentes:
 
 | Verificação | Etapas |
 |---|---|
 | Java | Configurar Java 21 e executar os testes Maven |
 | Front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
+| Ponta a ponta | Configurar Java 21 e Node 24, instalar Chromium, iniciar a API com H2 e executar Playwright |
+
+Se o job de ponta a ponta falhar, os diagnósticos disponíveis são armazenados no artefato `diagnosticos-e2e` por 7 dias.
+
+## Integração contínua
+
+O GitHub Actions executa três verificações independentes:
+
+| Verificação | Etapas |
+|---|---|
+| Java | Configurar Java 21 e executar os testes Maven |
+| Front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
+| Ponta a ponta | Configurar Java 21 e Node 24, instalar Chromium, iniciar a API com H2 e executar Playwright |
+
+Se o job de ponta a ponta falhar, os diagnósticos disponíveis são armazenados no artefato `diagnosticos-e2e` por 7 dias.
 
 O workflow é executado em:
 
@@ -661,8 +662,6 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
 - Ampliar os testes de ponta a ponta para filtros e mudanças de status.
-- Integrar o teste de ponta a ponta ao GitHub Actions.
-
 ## Autor
 
 **Guilherme Douglas Augusto Tonelli**
