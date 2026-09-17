@@ -38,6 +38,8 @@ Projeto de portfólio desenvolvido para praticar integração entre front-end e 
 - Persistir os chamados no PostgreSQL.
 - Gerenciar a estrutura do banco com migrações Flyway.
 
+A autenticação está em desenvolvimento. A estrutura de persistência de usuários já foi criada, mas ainda não há cadastro de usuários pela API, login ou controle de acesso aos chamados.
+
 ## Regras de negócio
 
 ### Cadastro e status
@@ -86,8 +88,9 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | Back-end | Java 21, Spring Boot, Spring Web MVC |
 | Persistência | Spring Data JPA, PostgreSQL 17, Flyway |
 | Front-end | React 19, JavaScript, Vite 8, HTML e CSS |
-| Testes da API | JUnit Jupiter, MockMvc e H2 |
+| Testes da API e persistência | JUnit Jupiter, MockMvc e H2 |
 | Testes da interface | Vitest, React Testing Library, jest-dom, user-event e jsdom |
+| Testes de ponta a ponta | Playwright e Chromium |
 | Análise de código | Oxlint |
 | Ferramentas | Maven, Node.js 24, npm, Git e GitHub Actions |
 
@@ -95,11 +98,14 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 
 | Caminho | Conteúdo |
 |---|---|
-| `src/main/java/br/com/guilhermetonelli/chamados` | Código Java |
+| `src/main/java/br/com/guilhermetonelli/chamados` | Código Java principal |
 | `src/main/resources` | Configurações da API |
 | `src/main/resources/db/migration` | Migrações Flyway |
-| `src/test/java` | Testes automatizados da API |
+| `src/main/resources/db/migration/V5__criar_tabela_usuarios.sql` | Criação da tabela de usuários |
+| `src/test/java` | Testes automatizados do back-end |
+| `src/test/java/br/com/guilhermetonelli/chamados/UsuarioRepositoryTest.java` | Testes de persistência, normalização e busca de usuários |
 | `src/test/resources` | Configurações dos testes Java |
+| `src/test/resources/application-e2e.properties` | Configuração da API para testes de ponta a ponta com H2 |
 | `frontend/src/App.jsx` | Estado da aplicação, tema, filtros e coordenação das operações |
 | `frontend/src/components/FormularioChamado.jsx` | Formulário de cadastro |
 | `frontend/src/components/ListaChamados.jsx` | Filtros e apresentação dos chamados |
@@ -110,16 +116,15 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `frontend/src/index.css` | Estilos globais e temas |
 | `frontend/src/App.test.jsx` | Testes dos fluxos da interface |
 | `frontend/src/App.prioridade.test.jsx` | Testes de prioridade no cadastro |
-| `frontend/src/test/setup.js` | Preparação e limpeza do ambiente de testes |
-| `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
-| `.github/workflows/testes.yml` | Verificações automáticas do Java e do front-end |
 | `frontend/src/App.filtros.test.jsx` | Testes dos filtros combinados e da paginação |
 | `frontend/src/App.tema.test.jsx` | Testes da alternância, persistência e falhas de armazenamento do tema |
-| `src/test/resources/application-e2e.properties` | Configuração da API para testes de ponta a ponta com H2 |
+| `frontend/src/test/setup.js` | Preparação e limpeza do ambiente de testes |
+| `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
 | `frontend/playwright.config.js` | Configuração do Playwright e da interface de testes |
 | `frontend/e2e/cadastro.spec.js` | Teste do fluxo completo de cadastro, atendimento e resolução, com consulta após recarregar |
-| `frontend/e2e/.gitignore` | Exclusão dos resultados locais do Playwright |
 | `frontend/e2e/filtros.spec.js` | Teste dos filtros combinados e da remoção de cada filtro preservando o outro |
+| `frontend/e2e/.gitignore` | Exclusão dos resultados locais do Playwright |
+| `.github/workflows/testes.yml` | Verificações automáticas do Java, front-end e testes de ponta a ponta |
 
 ### Principais componentes Java
 
@@ -129,12 +134,14 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `Chamado` | Entidade, prioridade, datas e regras de mudança de status |
 | `ChamadoRepository` | Acesso aos dados e consultas com filtros |
 | `ChamadoService` | Operações de negócio, validações e transações |
-| `ChamadoController` | Endpoints HTTP |
-| `CriarChamadoRequest` | Dados recebidos no cadastro |
+| `ChamadoController` | Endpoints HTTP de chamados |
+| `CriarChamadoRequest` | Dados recebidos no cadastro de chamados |
 | `PaginaChamadosResposta` | Estrutura da resposta paginada |
 | `ChamadoNaoEncontradoException` | Exceção para chamado inexistente |
 | `ErroResposta` | Estrutura padronizada dos erros |
 | `TratadorDeErros` | Tratamento centralizado de erros |
+| `Usuario` | Dados do usuário e normalização de nome e e-mail |
+| `UsuarioRepository` | Persistência de usuários e busca por e-mail |
 | `Main` | Interface de console mantida no projeto |
 
 ## Pré-requisitos
@@ -267,7 +274,9 @@ Exemplo:
 - A interface solicita `/api/chamados`.
 - O proxy encaminha para `http://127.0.0.1:8080/chamados`.
 
-Essa configuração é exclusiva do desenvolvimento. O projeto ainda não possui deploy configurado; a publicação exigirá definir como a interface acessará a API em produção.
+No modo `e2e`, a interface utiliza a porta 5174 e o proxy aponta para a API de testes na porta 8081.
+
+Essa configuração de proxy é exclusiva do desenvolvimento e dos testes locais. O projeto ainda não possui deploy configurado; a publicação exigirá definir como a interface acessará a API em produção.
 
 ## Utilizando a interface
 
@@ -458,7 +467,7 @@ As migrações ficam em:
 src/main/resources/db/migration
 ```
 
-A estrutura evoluiu pelas seguintes versões:
+As migrações versionadas do projeto são:
 
 | Versão | Alteração |
 |---|---|
@@ -466,6 +475,7 @@ A estrutura evoluiu pelas seguintes versões:
 | V2 | Inclusão da data de abertura |
 | V3 | Inclusão das datas de início do atendimento e resolução |
 | V4 | Inclusão da prioridade, com valor padrão `Normal` |
+| V5 | Criação da tabela `usuarios`, com e-mail único e campo para hash da senha |
 
 O Hibernate utiliza `ddl-auto=validate`. Alterações na estrutura do banco devem ser realizadas por novas migrações versionadas, sem editar migrações já aplicadas.
 
@@ -473,7 +483,9 @@ O banco existente do ambiente de desenvolvimento já foi adotado pelo Flyway com
 
 A adição dos filtros combinados reutiliza as colunas existentes e não exige uma nova migração.
 
-Para conferir a persistência:
+A V5 cria uma tabela vazia de usuários e não modifica a tabela de chamados. Sua execução foi validada nos testes com H2; a aplicação dessa versão no PostgreSQL do ambiente de desenvolvimento ainda está pendente de confirmação.
+
+Para conferir a persistência dos chamados:
 
 1. Cadastre um chamado.
 2. Encerre a API com `Ctrl + C`.
@@ -482,7 +494,7 @@ Para conferir a persistência:
 
 ## Testes e verificações
 
-### Back-end — 58 testes de integração
+### Back-end — 63 testes de integração
 
 Na raiz do projeto:
 
@@ -492,7 +504,7 @@ mvn clean test
 
 A suíte cobre:
 
-- Cadastro, listagem e busca por ID.
+- Cadastro, listagem e busca de chamados por ID.
 - Validação dos campos e das prioridades.
 - Transições de status.
 - Registro das datas.
@@ -500,8 +512,14 @@ A suíte cobre:
 - Combinação dos filtros.
 - Paginação, ordenação e resultados vazios.
 - Persistência e respostas padronizadas de erro.
+- Gravação e recuperação de usuários ativos.
+- Normalização do nome e do e-mail antes da gravação.
+- Busca de usuários pelo e-mail e consulta sem resultado.
+- Rejeição de e-mails duplicados após normalização.
 
 Os testes utilizam o perfil `test`, H2 em memória e migrações Flyway. O banco de testes é separado do PostgreSQL da aplicação.
+
+Os 5 testes de `UsuarioRepositoryTest` utilizam transações desfeitas ao final de cada caso. O valor fictício utilizado no campo de hash serve apenas para verificar armazenamento; esses testes não implementam nem validam autenticação.
 
 Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para executar essa suíte.
 
@@ -546,14 +564,14 @@ A suíte não depende da API Java em execução e não acessa o PostgreSQL. Ela 
 
 Os filtros combinados também foram conferidos manualmente na interface.
 
-### Teste de ponta a ponta — Playwright
+### Ponta a ponta — 2 testes com Playwright
 
 O projeto possui 2 testes de ponta a ponta:
 
 - Fluxo completo: cadastro, início do atendimento e resolução, verificando mensagens, botões, limpeza do formulário e manutenção do status após recarregar a página.
 - Filtros combinados: prepara quatro chamados pela API real e verifica pelo navegador a combinação de status e prioridade, os parâmetros enviados e a remoção de cada filtro preservando o outro. Percorre as páginas para conferir os resultados.
 
-O teste utiliza a interface React, a API Java em execução e H2 em memória, sem simular as chamadas HTTP.
+Os testes utilizam a interface React, a API Java em execução e H2 em memória, sem simular as chamadas HTTP.
 
 Esse ambiente usa portas próprias:
 
@@ -577,25 +595,27 @@ npm ci
 npx playwright install chromium
 ```
 
-Execute o teste:
+Execute os testes:
 
 ```powershell
 npx playwright test
 ```
 
-O Playwright inicia e encerra a interface de testes automaticamente. A API deve permanecer em execução durante o teste e pode ser encerrada depois com `Ctrl + C`.
+O Playwright inicia e encerra a interface de testes automaticamente. A API deve permanecer em execução durante os testes e pode ser encerrada depois com `Ctrl + C`.
 
-O teste navega pelas páginas para encontrar o chamado criado, permitindo novas execuções no mesmo banco temporário.
+Se a interface de testes na porta 5174 estiver aberta manualmente, encerre-a antes de executar o Playwright, pois sua configuração não reutiliza servidores existentes.
+
+Os testes utilizam títulos únicos e percorrem as páginas para localizar e conferir seus chamados, permitindo novas execuções no mesmo banco temporário.
 
 Em caso de falha, os arquivos de diagnóstico ficam em `frontend/e2e/resultados`, pasta ignorada pelo Git.
 
-Esse teste verifica a integração com H2; não substitui a verificação com PostgreSQL. Recarregar a página também não equivale a reiniciar a API.
+Esses testes verificam a integração com H2; não substituem a verificação com PostgreSQL. Recarregar a página também não equivale a reiniciar a API.
 
-Os 27 testes React continuam sendo executados separadamente por `npm test`. O teste Playwright também é executado pelo GitHub Actions, em um job independente que prepara o Chromium, inicia a API com H2 e executa o teste no navegador.
+Os 27 testes React continuam sendo executados separadamente por `npm test`. Os testes Playwright também são executados pelo GitHub Actions, em um job independente que prepara o Chromium, inicia a API com H2 e executa os testes no navegador.
 
 ### Modo de acompanhamento
 
-Para executar novamente os testes ao salvar alterações:
+Dentro de `frontend`, para executar novamente os testes React ao salvar alterações:
 
 ```powershell
 npm run test:watch
@@ -619,15 +639,19 @@ Gerar o build não publica a aplicação.
 
 ### Resumo dos comandos
 
-O GitHub Actions executa três verificações independentes:
-
-| Verificação | Etapas |
-|---|---|
-| Java | Configurar Java 21 e executar os testes Maven |
-| Front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
-| Ponta a ponta | Configurar Java 21 e Node 24, instalar Chromium, iniciar a API com H2 e executar Playwright |
-
-Se o job de ponta a ponta falhar, os diagnósticos disponíveis são armazenados no artefato `diagnosticos-e2e` por 7 dias.
+| Diretório | Comando | Finalidade |
+|---|---|---|
+| Raiz | `mvn clean test` | Executar os testes Java |
+| Raiz | `mvn spring-boot:run` | Iniciar a API com PostgreSQL, após configurar a conexão |
+| Raiz | `mvn test-compile spring-boot:test-run "-Dspring-boot.run.profiles=e2e"` | Iniciar a API de testes com H2 na porta 8081 |
+| `frontend` | `npm ci` | Instalar as dependências do lockfile |
+| `frontend` | `npm run dev` | Iniciar a interface de desenvolvimento na porta 5173 |
+| `frontend` | `npm test` | Executar os testes React |
+| `frontend` | `npm run test:watch` | Executar testes React ao salvar alterações |
+| `frontend` | `npm run lint` | Analisar o código |
+| `frontend` | `npm run build` | Gerar o build de produção |
+| `frontend` | `npx playwright install chromium` | Instalar o navegador dos testes de ponta a ponta |
+| `frontend` | `npx playwright test` | Executar os testes de ponta a ponta com a API H2 em execução |
 
 ## Integração contínua
 
@@ -657,9 +681,28 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 [Consultar execuções no GitHub Actions](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
+## Autenticação — em desenvolvimento
+
+A estrutura de persistência de usuários foi criada pela migração V5 e pelas classes `Usuario` e `UsuarioRepository`.
+
+Ela contém:
+
+- ID gerado pelo banco.
+- Nome obrigatório, com remoção de espaços nas extremidades.
+- E-mail obrigatório e único, salvo em minúsculas e sem espaços nas extremidades.
+- Campo `senha_hash` destinado a receber um hash já gerado.
+- Indicação de usuário ativo, habilitada na criação.
+
+O campo de hash está excluído da representação JSON da entidade.
+
+Essa etapa possui 5 testes de integração com H2. Ainda não há cadastro de usuários pela API, geração de hash, login, perfis de acesso ou controle de acesso aos chamados. A validação do formato do e-mail também será implementada na etapa de cadastro.
+
+Os chamados existentes ainda não possuem vínculo com usuários.
+
 ## Próximas melhorias
 
-- Adicionar autenticação e autorização.
+- Implementar cadastro de usuários com validação e geração segura do hash da senha.
+- Implementar login e autorização de acesso aos chamados.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
 
