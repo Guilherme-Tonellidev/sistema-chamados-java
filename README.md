@@ -119,6 +119,7 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `frontend/playwright.config.js` | Configuração do Playwright e da interface de testes |
 | `frontend/e2e/cadastro.spec.js` | Teste do fluxo completo de cadastro, atendimento e resolução, com consulta após recarregar |
 | `frontend/e2e/.gitignore` | Exclusão dos resultados locais do Playwright |
+| `frontend/e2e/filtros.spec.js` | Teste dos filtros combinados e da remoção de cada filtro preservando o outro |
 
 ### Principais componentes Java
 
@@ -547,7 +548,10 @@ Os filtros combinados também foram conferidos manualmente na interface.
 
 ### Teste de ponta a ponta — Playwright
 
-O projeto possui 1 teste de ponta a ponta que percorre o fluxo Aberto → Em atendimento → Resolvido pelo navegador. Ele verifica o cadastro, a limpeza dos campos, as mensagens de sucesso, os botões correspondentes a cada status e a ausência de botões de alteração após a resolução. Após cada etapa, recarrega a página e confere o status apresentado pela aplicação.
+O projeto possui 2 testes de ponta a ponta:
+
+- Fluxo completo: cadastro, início do atendimento e resolução, verificando mensagens, botões, limpeza do formulário e manutenção do status após recarregar a página.
+- Filtros combinados: prepara quatro chamados pela API real e verifica pelo navegador a combinação de status e prioridade, os parâmetros enviados e a remoção de cada filtro preservando o outro. Percorre as páginas para conferir os resultados.
 
 O teste utiliza a interface React, a API Java em execução e H2 em memória, sem simular as chamadas HTTP.
 
@@ -655,13 +659,10 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 ## Próximas melhorias
 
-## Próximas melhorias
-
-- Adicionar testes de ponta a ponta.
 - Adicionar autenticação e autorização.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
-- Ampliar os testes de ponta a ponta para filtros combinados.
+
 ## Autor
 
 **Guilherme Douglas Augusto Tonelli**
