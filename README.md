@@ -115,6 +115,10 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `.github/workflows/testes.yml` | Verificações automáticas do Java e do front-end |
 | `frontend/src/App.filtros.test.jsx` | Testes dos filtros combinados e da paginação |
 | `frontend/src/App.tema.test.jsx` | Testes da alternância, persistência e falhas de armazenamento do tema |
+| `src/test/resources/application-e2e.properties` | Configuração da API para testes de ponta a ponta com H2 |
+| `frontend/playwright.config.js` | Configuração do Playwright e da interface de testes |
+| `frontend/e2e/cadastro.spec.js` | Teste de cadastro pelo navegador e consulta após recarregar |
+| `frontend/e2e/.gitignore` | Exclusão dos resultados locais do Playwright |
 
 ### Principais componentes Java
 
@@ -541,6 +545,50 @@ A suíte não depende da API Java em execução e não acessa o PostgreSQL. Ela 
 
 Os filtros combinados também foram conferidos manualmente na interface.
 
+### Teste de ponta a ponta — Playwright
+
+O projeto possui 1 teste de ponta a ponta que cadastra um chamado pelo navegador, confere sua apresentação na lista e recarrega a página para verificar se ele continua disponível.
+
+O teste utiliza a interface React, a API Java em execução e H2 em memória, sem simular as chamadas HTTP.
+
+Esse ambiente usa portas próprias:
+
+- API de testes: `http://127.0.0.1:8081`.
+- Interface de testes: `http://127.0.0.1:5174`.
+
+Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD`. Os dados ficam no banco temporário `chamados_e2e` e desaparecem quando a API de testes é encerrada.
+
+Na raiz do projeto, inicie a API de testes:
+
+```powershell
+mvn test-compile spring-boot:test-run "-Dspring-boot.run.profiles=e2e"
+```
+
+Mantenha esse terminal em execução.
+
+Em outro terminal, dentro de `frontend`, instale as dependências e o navegador na primeira utilização:
+
+```powershell
+npm ci
+npx playwright install chromium
+```
+
+Execute o teste:
+
+```powershell
+npx playwright test
+```
+
+O Playwright inicia e encerra a interface de testes automaticamente. A API deve permanecer em execução durante o teste e pode ser encerrada depois com `Ctrl + C`.
+
+O teste navega pelas páginas para encontrar o chamado criado, permitindo novas execuções no mesmo banco temporário.
+
+Em caso de falha, os arquivos de diagnóstico ficam em `frontend/e2e/resultados`, pasta ignorada pelo Git.
+
+Esse teste verifica a integração com H2; não substitui a verificação com PostgreSQL. Recarregar a página também não equivale a reiniciar a API.
+
+Os 27 testes React continuam sendo executados separadamente por `npm test`. Por enquanto, o teste Playwright é executado localmente e ainda não faz parte do GitHub Actions.
+
 
 ### Modo de acompanhamento
 
@@ -612,6 +660,8 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 - Adicionar autenticação e autorização.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
+- Ampliar os testes de ponta a ponta para filtros e mudanças de status.
+- Integrar o teste de ponta a ponta ao GitHub Actions.
 
 ## Autor
 
