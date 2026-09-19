@@ -1,5 +1,7 @@
 package br.com.guilhermetonelli.chamados;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+
 import org.junit.jupiter.api.BeforeEach;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,7 @@ public abstract class BaseIntegracaoTest {
 
         mockMvc = MockMvcBuilders
             .webAppContextSetup(context)
+            .apply(springSecurity())
             .build();
     }
 }

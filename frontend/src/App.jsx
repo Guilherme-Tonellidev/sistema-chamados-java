@@ -1,26 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import FormularioChamado from './components/FormularioChamado'
-import ListaChamados from './components/ListaChamados'
-import {
-  listarChamados,
-  criarChamado,
-  iniciarAtendimento,
-  resolverChamado,
-} from './services/chamadosApi'
+import PainelChamados from './PainelChamados'
+import FormularioLogin from './components/FormularioLogin'
+import { consultarSessao, sair } from './services/autenticacaoApi'
 import './App.css'
 
 const CHAVE_TEMA = 'sistema-chamados-tema'
-
-const acoesStatus = {
-  Aberto: {
-    executar: iniciarAtendimento,
-    sucesso: 'Atendimento iniciado',
-  },
-  'Em atendimento': {
-    executar: resolverChamado,
-    sucesso: 'Chamado resolvido',
-  },
-}
 
 function lerTemaSalvo() {
   try {
@@ -32,30 +16,8 @@ function lerTemaSalvo() {
   }
 }
 
-export default function App() {
+function Acesso({ children }) {
   const [tema, setTema] = useState(lerTemaSalvo)
-
-  const [filtro, setFiltro] = useState('')
-  const [filtroPrioridade, setFiltroPrioridade] = useState('')
-  const [pagina, setPagina] = useState(0)
-  const [atualizacao, setAtualizacao] = useState(0)
-  const [dados, setDados] = useState(null)
-  const [carregando, setCarregando] = useState(true)
-  const [erro, setErro] = useState('')
-
-  const [titulo, setTitulo] = useState('')
-  const [descricao, setDescricao] = useState('')
-  const [prioridade, setPrioridade] = useState('Normal')
-  const [salvando, setSalvando] = useState(false)
-  const [erroCadastro, setErroCadastro] = useState('')
-  const [sucessoCadastro, setSucessoCadastro] = useState('')
-
-  const [idEmAlteracao, setIdEmAlteracao] = useState(null)
-  const [erroStatus, setErroStatus] = useState('')
-  const [sucessoStatus, setSucessoStatus] = useState('')
-
-  const operacaoEmAndamento = useRef(false)
-  const operacaoPendente = salvando || idEmAlteracao !== null
   const temaEscuro = tema === 'escuro'
 
   useEffect(() => {
@@ -64,183 +26,12 @@ export default function App() {
     try {
       localStorage.setItem(CHAVE_TEMA, tema)
     } catch {
-      // O tema funciona mesmo se o navegador bloquear o armazenamento.
-      return
+      // A troca de tema funciona mesmo sem acesso ao armazenamento.
     }
   }, [tema])
 
-  useEffect(() => {
-    const controller = new AbortController()
-    let ajustandoPagina = false
-
-    async function carregarChamados() {
-      setCarregando(true)
-      setErro('')
-
-      try {
-        const resultado = await listarChamados({
-          pagina,
-          tamanho: 5,
-          status: filtro,
-          prioridade: filtroPrioridade,
-          signal: controller.signal,
-        })
-
-        if (controller.signal.aborted) {
-          return
-        }
-
-        // Uma mudança de status pode esvaziar a última página do filtro.
-        const ultimaPagina = Math.max(0, resultado.totalPaginas - 1)
-
-        if (pagina > ultimaPagina) {
-          ajustandoPagina = true
-          setPagina(ultimaPagina)
-          return
-        }
-
-        setDados(resultado)
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setDados(null)
-          setErro(
-            error instanceof TypeError
-              ? 'Não foi possível conectar ao serviço. Tente novamente.'
-              : error.message,
-          )
-        }
-      } finally {
-        if (!controller.signal.aborted && !ajustandoPagina) {
-          setCarregando(false)
-        }
-      }
-    }
-
-    carregarChamados()
-
-    return () => controller.abort()
-  }, [filtro, filtroPrioridade, pagina, atualizacao])
-
-  function alternarTema() {
-    setTema((atual) => (atual === 'claro' ? 'escuro' : 'claro'))
-  }
-
-  function alterarFiltro(novoFiltro) {
-    if (novoFiltro === filtro) {
-      return
-    }
-
-    setCarregando(true)
-    setFiltro(novoFiltro)
-    setPagina(0)
-  }
-
-  function alterarFiltroPrioridade(novaPrioridade) {
-    if (novaPrioridade === filtroPrioridade) {
-      return
-    }
-
-    setCarregando(true)
-    setFiltroPrioridade(novaPrioridade)
-    setPagina(0)
-  }
-
-  function mudarPagina(novaPagina) {
-    setCarregando(true)
-    setPagina(novaPagina)
-  }
-
-  function atualizar() {
-    setCarregando(true)
-    setAtualizacao((valor) => valor + 1)
-  }
-
-  async function cadastrarChamado(event) {
-    event.preventDefault()
-
-    if (operacaoEmAndamento.current) {
-      return
-    }
-
-    setErroCadastro('')
-    setSucessoCadastro('')
-    setErroStatus('')
-    setSucessoStatus('')
-
-    const tituloLimpo = titulo.trim()
-    const descricaoLimpa = descricao.trim()
-
-    if (!tituloLimpo || !descricaoLimpa) {
-      setErroCadastro(
-        'Preencha o título e a descrição. Os campos não podem conter apenas espaços.',
-      )
-      return
-    }
-
-    operacaoEmAndamento.current = true
-    setSalvando(true)
-
-    try {
-      const resultado = await criarChamado({
-        titulo: tituloLimpo,
-        descricao: descricaoLimpa,
-        prioridade,
-      })
-
-      setTitulo('')
-      setDescricao('')
-      setPrioridade('Normal')
-      setSucessoCadastro(
-        resultado?.id != null
-          ? `Chamado #${resultado.id} cadastrado com sucesso! Status inicial: Aberto.`
-          : 'Chamado cadastrado com sucesso! Status inicial: Aberto.',
-      )
-
-      atualizar()
-    } catch (error) {
-      setErroCadastro(
-        error instanceof TypeError
-          ? 'Não foi possível confirmar o cadastro por uma falha de conexão. Atualize a lista para verificar se o chamado foi criado antes de enviar novamente.'
-          : error.message,
-      )
-    } finally {
-      operacaoEmAndamento.current = false
-      setSalvando(false)
-    }
-  }
-
-  async function alterarStatus(chamado) {
-    const acao = acoesStatus[chamado.status]
-
-    if (!acao || operacaoEmAndamento.current) {
-      return
-    }
-
-    operacaoEmAndamento.current = true
-    setIdEmAlteracao(chamado.id)
-    setErroStatus('')
-    setSucessoStatus('')
-    setSucessoCadastro('')
-
-    try {
-      await acao.executar(chamado.id)
-
-      setSucessoStatus(`${acao.sucesso} com sucesso! Solicitação #${chamado.id}.`)
-      atualizar()
-    } catch (error) {
-      setErroStatus(
-        error instanceof TypeError
-          ? 'Não foi possível confirmar a alteração por uma falha de conexão. Atualize a lista para conferir o status antes de tentar novamente.'
-          : error.message,
-      )
-    } finally {
-      operacaoEmAndamento.current = false
-      setIdEmAlteracao(null)
-    }
-  }
-
   return (
-    <main className="painel">
+    <main className="painel painel-acesso">
       <header className="cabecalho">
         <div>
           <p className="marca">CENTRAL DE SUPORTE</p>
@@ -250,66 +41,151 @@ export default function App() {
           </p>
         </div>
 
-        <div className="acoes-cabecalho">
-          <button
-            type="button"
-            className="botao-tema"
-            onClick={alternarTema}
-            aria-label={
-              temaEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'
-            }
-          >
-            <span className="icone-tema" aria-hidden="true">
-              {temaEscuro ? '☀' : '☾'}
-            </span>
-            {temaEscuro ? 'Tema claro' : 'Tema escuro'}
-          </button>
-
-          <button
-            type="button"
-            className="botao-primario"
-            onClick={atualizar}
-            disabled={carregando || operacaoPendente}
-          >
-            {carregando ? 'Carregando…' : 'Atualizar lista'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="botao-tema"
+          onClick={() =>
+            setTema((atual) => (atual === 'claro' ? 'escuro' : 'claro'))
+          }
+          aria-label={
+            temaEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'
+          }
+        >
+          <span className="icone-tema" aria-hidden="true">
+            {temaEscuro ? '☀' : '☾'}
+          </span>
+          {temaEscuro ? 'Tema claro' : 'Tema escuro'}
+        </button>
       </header>
 
-      <FormularioChamado
-        titulo={titulo}
-        descricao={descricao}
-        prioridade={prioridade}
-        salvando={salvando}
-        bloqueado={operacaoPendente}
-        erro={erroCadastro}
-        sucesso={sucessoCadastro}
-        aoAlterarTitulo={setTitulo}
-        aoAlterarDescricao={setDescricao}
-        aoAlterarPrioridade={setPrioridade}
-        aoCadastrar={cadastrarChamado}
-      />
-
-      <ListaChamados
-        dados={dados}
-        filtro={filtro}
-        filtroPrioridade={filtroPrioridade}
-        carregando={carregando}
-        erro={erro}
-        erroStatus={erroStatus}
-        sucessoStatus={sucessoStatus}
-        idEmAlteracao={idEmAlteracao}
-        bloqueado={operacaoPendente}
-        aoAlterarFiltro={alterarFiltro}
-        aoAlterarFiltroPrioridade={alterarFiltroPrioridade}
-        aoAtualizar={atualizar}
-        aoAlterarStatus={alterarStatus}
-        aoMudarPagina={mudarPagina}
-      />
+      {children}
 
       <footer className="rodape">
         Sistema de Chamados · Guilherme Tonelli
       </footer>
     </main>
+  )
+}
+
+export default function App() {
+  const [usuario, setUsuario] = useState(null)
+  const [estado, setEstado] = useState('consultando')
+  const [erro, setErro] = useState('')
+  const [tentativa, setTentativa] = useState(0)
+  const logoutEmAndamento = useRef(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function carregarSessao() {
+      try {
+        const resultado = await consultarSessao({
+          signal: controller.signal,
+        })
+
+        if (controller.signal.aborted) {
+          return
+        }
+
+        setUsuario(resultado)
+        setEstado(resultado ? 'autenticado' : 'anonimo')
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setErro(
+            error instanceof TypeError
+              ? 'Não foi possível conectar ao serviço. Tente novamente.'
+              : error.message,
+          )
+          setEstado('erro')
+        }
+      }
+    }
+
+    carregarSessao()
+
+    return () => controller.abort()
+  }, [tentativa])
+
+  function tentarNovamente() {
+    setErro('')
+    setUsuario(null)
+    setEstado('consultando')
+    setTentativa((atual) => atual + 1)
+  }
+
+  function concluirLogin(usuarioConectado) {
+    setErro('')
+    setUsuario(usuarioConectado)
+    setEstado('autenticado')
+  }
+
+  async function encerrarSessao() {
+    if (logoutEmAndamento.current) {
+      return
+    }
+
+    logoutEmAndamento.current = true
+    setErro('')
+    setEstado('saindo')
+
+    try {
+      await sair()
+      setUsuario(null)
+      setEstado('anonimo')
+    } catch {
+      setUsuario(null)
+      setErro(
+        'Não foi possível confirmar a saída. Verifique a sessão e tente sair novamente.',
+      )
+      setEstado('erro')
+    } finally {
+      logoutEmAndamento.current = false
+    }
+  }
+
+  if (estado === 'autenticado' && usuario) {
+    return (
+      <>
+        <div className="barra-sessao">
+          <p>
+            Conectado como <strong>{usuario.nome}</strong>
+          </p>
+          <button type="button" onClick={encerrarSessao}>
+            Sair
+          </button>
+        </div>
+
+        <PainelChamados />
+      </>
+    )
+  }
+
+  return (
+    <Acesso>
+      {(estado === 'consultando' || estado === 'saindo') && (
+        <section className="conteudo" aria-busy="true">
+          <p className="mensagem" role="status">
+            {estado === 'saindo'
+              ? 'Encerrando sessão…'
+              : 'Verificando sessão…'}
+          </p>
+        </section>
+      )}
+
+      {estado === 'erro' && (
+        <section className="conteudo">
+          <div className="erro" role="alert">
+            <p>{erro}</p>
+          </div>
+          <button type="button" onClick={tentarNovamente}>
+            Verificar sessão novamente
+          </button>
+        </section>
+      )}
+
+      {estado === 'anonimo' && (
+        <FormularioLogin aoEntrar={concluirLogin} />
+      )}
+    </Acesso>
   )
 }

@@ -100,15 +100,15 @@ input,
 textarea {
   font: inherit;
   border: 1px solid var(--borda-campo);
-  border-radius: 10px;
+  border-radius: 20px;
   background: var(--fundo-campo);
   color: var(--texto);
-  padding: 11px 16px;
+  padding: 6px 10px;
 }
 
 button {
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 button:hover:not(:disabled) {

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect } from '@playwright/test'
+import { test, expect } from './autenticacao'
 
 async function aguardarLista(page) {
   await expect(

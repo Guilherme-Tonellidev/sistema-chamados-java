@@ -23,15 +23,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 8px;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size:10px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
 .icone-tema {
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1;
 }
 
@@ -198,7 +198,7 @@ h2 {
 
 .descricao {
   color: var(--texto-secundario);
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -210,27 +210,27 @@ h2 {
 }
 
 .prioridade-baixa {
-  color: #166534;
+  color: #17d560;
 }
 
 .prioridade-normal {
-  color: #856000;
+  color: #f8fc00;
 }
 
 .prioridade-alta {
-  color: #b91c1c;
+  color: #e20c0c;
 }
 
 :root[data-tema="escuro"] .prioridade-baixa {
-  color: #86efac;
+  color: #41f583;
 }
 
 :root[data-tema="escuro"] .prioridade-normal {
-  color: #fde047;
+  color: #dfc230;
 }
 
 :root[data-tema="escuro"] .prioridade-alta {
-  color: #fca5a5;
+  color: #e34141;
 }
 
 .mensagem {
@@ -312,4 +312,44 @@ h2 {
   .paginacao button {
     padding: 10px;
   }
+
+  .painel-acesso {
+  max-width: 760px;
+}
+
+.login {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.login .erro {
+  margin: 0;
+}
+
+.barra-sessao {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  color: var(--texto-secundario);
+}
+
+.barra-sessao p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.barra-sessao button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .barra-sessao {
+    padding: 16px 16px 0;
+    align-items: flex-start;
+  }
+}
 }

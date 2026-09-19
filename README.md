@@ -797,33 +797,69 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 [Consultar execuções no GitHub Actions](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
-## Autenticação — em desenvolvimento
+## Autenticação — login implementado, autorização em desenvolvimento
 
-O cadastro de usuários pela API foi implementado com validação de dados e geração do hash da senha.
+O cadastro de usuários pela API e o login pela interface estão implementados.
 
 A estrutura atual inclui:
 
 - Tabela `usuarios`, criada pela migração V5.
-- Entidade `Usuario` e repositório de consulta por e-mail.
+- Entidade `Usuario` e consulta por e-mail normalizado.
 - Configuração BCrypt com fator de custo 12 e prefixo `{bcrypt}`.
-- Endpoint `POST /usuarios`.
-- Resposta com somente `id`, `nome`, `email` e `ativo`.
-- Tratamento de dados inválidos e e-mail duplicado.
-- Testes automatizados de persistência, hash e cadastro.
-- Verificação manual do cadastro com PostgreSQL.
+- Cadastro pela API em `POST /usuarios`, com validação e tratamento de e-mail duplicado.
+- Resposta de usuário contendo somente `id`, `nome`, `email` e `ativo`.
+- Tela de login com e-mail e senha.
+- Autenticação com sessão mantida por cookie.
+- Recuperação da sessão ao recarregar a página.
+- Logout com encerramento da sessão no servidor.
+- Proteção CSRF nos endpoints de autenticação.
+- Troca do identificador da sessão após o login.
+- Rejeição de credenciais inválidas e contas inativas.
+- Mensagem genérica de falha, sem informar se o e-mail existe.
+- Testes automatizados de persistência, cadastro, autenticação e sessão.
+- Verificação manual de login, recarga e logout com PostgreSQL.
 
-O campo de hash está excluído da representação JSON da entidade. O objeto de entrada do cadastro também omite a senha na serialização e no método `toString()`.
+### Endpoints de autenticação
 
-Ainda não há login, sessão autenticada, perfis de acesso, recuperação de senha ou controle de acesso aos chamados. O cadastro não confirma a propriedade do e-mail.
+| Método | Caminho | Finalidade |
+|---|---|---|
+| GET | `/auth/csrf` | Obter o token CSRF |
+| POST | `/auth/login` | Autenticar e iniciar a sessão |
+| GET | `/auth/me` | Consultar o usuário autenticado |
+| POST | `/auth/logout` | Encerrar a sessão |
+
+O login recebe `email` e `senha` no formato
+`application/x-www-form-urlencoded`. Login e logout bem-sucedidos retornam
+HTTP 204.
+
+A interface envia o token CSRF no cabeçalho indicado por `/auth/csrf`.
+Após o login, um token atualizado é obtido antes do logout.
+
+A senha não é armazenada pela aplicação no armazenamento local do navegador.
+O hash é excluído da representação JSON da entidade. O objeto de entrada do
+cadastro também omite a senha na serialização e no método `toString()`.
+
+### Limites da implementação atual
+
+A interface exige login para mostrar o painel, mas os endpoints de chamados
+ainda estão públicos e podem ser acessados diretamente sem autenticação.
+A proteção CSRF atual está limitada aos caminhos `/auth/**`.
+
+A exigência de autenticação na API de chamados e as regras de autorização
+serão implementadas na próxima etapa.
+
+Ainda não há perfis de acesso, recuperação de senha, confirmação de
+propriedade do e-mail ou tela de cadastro de usuários.
 
 Os chamados existentes ainda não possuem vínculo com usuários.
 
 ## Próximas melhorias
 
-- Implementar login e autorização de acesso aos chamados.
-- Criar as telas de cadastro de usuários e login.
+- Exigir autenticação nos endpoints de chamados e implementar regras de autorização.
+- Criar a tela de cadastro de usuários.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
+
 
 ## Autor
 
