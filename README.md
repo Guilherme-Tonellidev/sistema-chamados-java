@@ -37,12 +37,16 @@ Projeto de portfólio desenvolvido para praticar integração entre front-end e 
 - Retornar erros padronizados.
 - Persistir os chamados no PostgreSQL.
 - Gerenciar a estrutura do banco com migrações Flyway.
+- Cadastrar usuários com nome, e-mail e senha.
+- Normalizar o e-mail e rejeitar cadastros duplicados.
+- Gerar o hash da senha com BCrypt.
+- Retornar os dados do usuário cadastrado sem expor senha ou hash.
 
-A autenticação está em desenvolvimento. A estrutura de persistência de usuários já foi criada, mas ainda não há cadastro de usuários pela API, login ou controle de acesso aos chamados.
+O cadastro de usuários está disponível somente pela API. Login, autorização e telas de acesso ainda estão em desenvolvimento. Os endpoints de chamados ainda não exigem autenticação.
 
 ## Regras de negócio
 
-### Cadastro e status
+### Cadastro e status dos chamados
 
 - Novos chamados recebem o status `Aberto`.
 - Título e descrição são obrigatórios e não podem conter apenas espaços.
@@ -81,18 +85,38 @@ A data de início do atendimento continua armazenada no banco, mesmo quando deix
 
 Os horários são apresentados no formato brasileiro, usando o fuso horário do navegador. Registros antigos sem uma determinada data recebem uma indicação de que ela não foi registrada.
 
+### Cadastro de usuários
+
+- Nome, e-mail e senha são obrigatórios e não podem conter apenas espaços.
+- O nome tem até 100 caracteres, após remover espaços nas extremidades.
+- O e-mail tem até 254 caracteres e passa por validação de formato.
+- O e-mail é salvo em minúsculas e sem espaços nas extremidades.
+- Cada e-mail normalizado pode pertencer a apenas um usuário.
+- A senha deve ter pelo menos 15 caracteres.
+- A senha deve ocupar no máximo 72 bytes em UTF-8, respeitando o limite do BCrypt.
+- Caracteres acentuados e outros caracteres Unicode podem ocupar mais de um byte.
+- A senha é preservada exatamente como recebida, inclusive os espaços nas extremidades.
+- Novos usuários são criados com `ativo` igual a `true`.
+- Somente o hash da senha é armazenado.
+- A resposta do cadastro não contém senha nem hash.
+
+A validação do formato do e-mail não verifica a existência da caixa postal nem confirma sua propriedade.
+
 ## Tecnologias
 
 | Área | Tecnologias |
 |---|---|
 | Back-end | Java 21, Spring Boot, Spring Web MVC |
 | Persistência | Spring Data JPA, PostgreSQL 17, Flyway |
+| Hash de senhas | Spring Security Crypto e BCrypt |
 | Front-end | React 19, JavaScript, Vite 8, HTML e CSS |
 | Testes da API e persistência | JUnit Jupiter, MockMvc e H2 |
 | Testes da interface | Vitest, React Testing Library, jest-dom, user-event e jsdom |
 | Testes de ponta a ponta | Playwright e Chromium |
 | Análise de código | Oxlint |
 | Ferramentas | Maven, Node.js 24, npm, Git e GitHub Actions |
+
+O módulo Spring Security Crypto é utilizado para gerar e verificar hashes. A proteção HTTP dos endpoints ainda não foi implementada.
 
 ## Organização do projeto
 
@@ -104,14 +128,16 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `src/main/resources/db/migration/V5__criar_tabela_usuarios.sql` | Criação da tabela de usuários |
 | `src/test/java` | Testes automatizados do back-end |
 | `src/test/java/br/com/guilhermetonelli/chamados/UsuarioRepositoryTest.java` | Testes de persistência, normalização e busca de usuários |
+| `src/test/java/br/com/guilhermetonelli/chamados/ConfiguracaoSenhasTest.java` | Testes da configuração de hash e verificação de senhas |
+| `src/test/java/br/com/guilhermetonelli/chamados/UsuarioCadastroTest.java` | Testes do cadastro de usuários pela API |
 | `src/test/resources` | Configurações dos testes Java |
 | `src/test/resources/application-e2e.properties` | Configuração da API para testes de ponta a ponta com H2 |
 | `frontend/src/App.jsx` | Estado da aplicação, tema, filtros e coordenação das operações |
-| `frontend/src/components/FormularioChamado.jsx` | Formulário de cadastro |
+| `frontend/src/components/FormularioChamado.jsx` | Formulário de cadastro de chamados |
 | `frontend/src/components/ListaChamados.jsx` | Filtros e apresentação dos chamados |
 | `frontend/src/components/StatusChamado.jsx` | Status e data correspondente |
 | `frontend/src/components/Paginacao.jsx` | Navegação entre páginas |
-| `frontend/src/services/chamadosApi.js` | Requisições HTTP para a API |
+| `frontend/src/services/chamadosApi.js` | Requisições HTTP para a API de chamados |
 | `frontend/src/App.css` | Estilos da interface |
 | `frontend/src/index.css` | Estilos globais e temas |
 | `frontend/src/App.test.jsx` | Testes dos fluxos da interface |
@@ -133,7 +159,7 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `ChamadosApplication` | Inicialização da aplicação Spring Boot |
 | `Chamado` | Entidade, prioridade, datas e regras de mudança de status |
 | `ChamadoRepository` | Acesso aos dados e consultas com filtros |
-| `ChamadoService` | Operações de negócio, validações e transações |
+| `ChamadoService` | Operações de negócio, validações e transações dos chamados |
 | `ChamadoController` | Endpoints HTTP de chamados |
 | `CriarChamadoRequest` | Dados recebidos no cadastro de chamados |
 | `PaginaChamadosResposta` | Estrutura da resposta paginada |
@@ -142,6 +168,11 @@ Os horários são apresentados no formato brasileiro, usando o fuso horário do 
 | `TratadorDeErros` | Tratamento centralizado de erros |
 | `Usuario` | Dados do usuário e normalização de nome e e-mail |
 | `UsuarioRepository` | Persistência de usuários e busca por e-mail |
+| `ConfiguracaoSenhas` | Configuração do codificador BCrypt |
+| `CriarUsuarioRequest` | Dados recebidos no cadastro de usuários |
+| `UsuarioResposta` | Dados públicos retornados após o cadastro |
+| `UsuarioService` | Validação, geração de hash e gravação de usuários |
+| `UsuarioController` | Endpoint HTTP de cadastro de usuários |
 | `Main` | Interface de console mantida no projeto |
 
 ## Pré-requisitos
@@ -263,7 +294,7 @@ Após alterar o código Java, reinicie a API para utilizar a versão atualizada.
 
 ## Comunicação entre front-end e API
 
-O arquivo `frontend/src/services/chamadosApi.js` centraliza as requisições HTTP de listagem, cadastro e mudança de status.
+O arquivo `frontend/src/services/chamadosApi.js` centraliza as requisições HTTP de listagem, cadastro e mudança de status dos chamados.
 
 A interface utiliza caminhos iniciados por `/api`.
 
@@ -314,8 +345,9 @@ Ao mudar o status, um chamado pode deixar de corresponder ao filtro. Se isso eli
 | PATCH | `/chamados/{id}/atendimento` | Iniciar atendimento | 200 |
 | PATCH | `/chamados/{id}/resolucao` | Resolver chamado | 200 |
 | GET | `/chamados/paginados` | Listar com paginação e filtros opcionais | 200 |
+| POST | `/usuarios` | Cadastrar usuário com senha armazenada como hash | 201 |
 
-### Cadastro
+### Cadastro de chamado
 
 Corpo JSON enviado para `POST /chamados`:
 
@@ -329,7 +361,38 @@ Corpo JSON enviado para `POST /chamados`:
 
 Se a prioridade não for informada, a API utiliza `Normal`.
 
-### Filtros
+### Cadastro de usuário
+
+Corpo JSON enviado para `POST /usuarios`:
+
+```json
+{
+  "nome": "Usuario Demonstracao",
+  "email": "demo@example.com",
+  "senha": "DemonstracaoLocal-2026!"
+}
+```
+
+A senha acima é fictícia, exclusiva do exemplo local.
+
+Exemplo de resposta:
+
+```json
+{
+  "id": 1,
+  "nome": "Usuario Demonstracao",
+  "email": "demo@example.com",
+  "ativo": true
+}
+```
+
+O ID é gerado pelo banco e pode ser diferente do exemplo.
+
+A resposta não contém a senha nem seu hash. Um novo cadastro com o mesmo e-mail normalizado retorna `409 Conflict`.
+
+O cadastro não inicia uma sessão e não autentica o usuário.
+
+### Filtros de chamados
 
 Valores aceitos:
 
@@ -399,13 +462,23 @@ As respostas padronizadas contêm `status`, `erro` e `caminho`.
 
 | Código | Exemplos |
 |---|---|
-| 400 Bad Request | Campos inválidos, prioridade inválida, JSON malformado ou parâmetros inválidos |
+| 400 Bad Request | Campos inválidos, prioridade inválida, e-mail inválido, senha fora dos limites, JSON malformado ou parâmetros inválidos |
 | 404 Not Found | Chamado inexistente |
-| 409 Conflict | Mudança de status incompatível com o estado atual |
+| 409 Conflict | Mudança de status incompatível com o estado atual ou e-mail já cadastrado |
+
+Exemplo de conflito no cadastro de usuário:
+
+```json
+{
+  "status": 409,
+  "erro": "E-mail já cadastrado.",
+  "caminho": "/usuarios"
+}
+```
 
 ## Exemplos da API no PowerShell
 
-Com a API em execução, abra outro terminal e execute os exemplos na ordem, na mesma sessão.
+Com a API em execução, abra outro terminal e execute os exemplos de chamados na ordem, na mesma sessão.
 
 ### Abrir um chamado
 
@@ -457,9 +530,32 @@ Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/atendiment
 Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/resolucao" -Method Patch
 ```
 
+### Cadastrar um usuário de demonstração
+
+Este exemplo cria um registro no banco utilizado pela API. A senha é fictícia e não deve ser reutilizada em contas reais.
+
+```powershell
+$dadosUsuario = @{
+    nome = "Usuario Demonstracao"
+    email = "demo@example.com"
+    senha = "DemonstracaoLocal-2026!"
+} | ConvertTo-Json
+
+$parametrosUsuario = @{
+    Uri = "http://localhost:8080/usuarios"
+    Method = "Post"
+    ContentType = "application/json; charset=utf-8"
+    Body = $dadosUsuario
+}
+
+Invoke-RestMethod @parametrosUsuario
+```
+
+A resposta apresenta `id`, `nome`, `email` e `ativo`. Repetir o cadastro com esse e-mail retorna conflito.
+
 ## Persistência e migrações
 
-Os chamados são armazenados no PostgreSQL e permanecem disponíveis depois de reiniciar a aplicação.
+Os chamados e usuários são armazenados no PostgreSQL.
 
 As migrações ficam em:
 
@@ -483,7 +579,9 @@ O banco existente do ambiente de desenvolvimento já foi adotado pelo Flyway com
 
 A adição dos filtros combinados reutiliza as colunas existentes e não exige uma nova migração.
 
-A V5 cria uma tabela vazia de usuários e não modifica a tabela de chamados. Sua execução foi validada nos testes com H2; a aplicação dessa versão no PostgreSQL do ambiente de desenvolvimento ainda está pendente de confirmação.
+A V5 cria a tabela de usuários sem modificar a tabela de chamados. Sua aplicação foi confirmada no PostgreSQL do ambiente de desenvolvimento e sua execução também é validada nos testes com H2.
+
+O cadastro de um usuário de demonstração pela API foi conferido com PostgreSQL, retornando HTTP 201 e somente os dados públicos do usuário.
 
 Para conferir a persistência dos chamados:
 
@@ -494,7 +592,7 @@ Para conferir a persistência dos chamados:
 
 ## Testes e verificações
 
-### Back-end — 63 testes de integração
+### Back-end — 77 testes de integração
 
 Na raiz do projeto:
 
@@ -516,10 +614,28 @@ A suíte cobre:
 - Normalização do nome e do e-mail antes da gravação.
 - Busca de usuários pelo e-mail e consulta sem resultado.
 - Rejeição de e-mails duplicados após normalização.
+- Geração de hash BCrypt e reconhecimento da senha correta.
+- Rejeição de senha incorreta.
+- Geração de hashes diferentes para a mesma senha.
+- Cadastro de usuários pela API com resposta sem senha ou hash.
+- Validação de campos obrigatórios, nome, e-mail e senha.
+- Limites de senha em caracteres e bytes UTF-8.
+- Preservação dos espaços da senha.
+- Rejeição de JSON malformado no cadastro de usuários.
+
+A cobertura relacionada aos usuários está distribuída em:
+
+| Arquivo | Quantidade | Cobertura |
+|---|---|---|
+| `UsuarioRepositoryTest` | 5 | Persistência, normalização, busca e duplicidade |
+| `ConfiguracaoSenhasTest` | 3 | Configuração do hash e verificação de senhas |
+| `UsuarioCadastroTest` | 11 | Endpoint de cadastro, validações e dados retornados |
 
 Os testes utilizam o perfil `test`, H2 em memória e migrações Flyway. O banco de testes é separado do PostgreSQL da aplicação.
 
-Os 5 testes de `UsuarioRepositoryTest` utilizam transações desfeitas ao final de cada caso. O valor fictício utilizado no campo de hash serve apenas para verificar armazenamento; esses testes não implementam nem validam autenticação.
+Os testes de persistência e cadastro de usuários utilizam transações desfeitas ao final de cada caso.
+
+O valor fictício utilizado como hash em `UsuarioRepositoryTest` serve apenas para verificar armazenamento. Os testes de configuração e cadastro utilizam o codificador BCrypt real, com senhas fictícias.
 
 Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para executar essa suíte.
 
@@ -568,7 +684,7 @@ Os filtros combinados também foram conferidos manualmente na interface.
 
 O projeto possui 2 testes de ponta a ponta:
 
-- Fluxo completo: cadastro, início do atendimento e resolução, verificando mensagens, botões, limpeza do formulário e manutenção do status após recarregar a página.
+- Fluxo completo: cadastro de chamado, início do atendimento e resolução, verificando mensagens, botões, limpeza do formulário e manutenção do status após recarregar a página.
 - Filtros combinados: prepara quatro chamados pela API real e verifica pelo navegador a combinação de status e prioridade, os parâmetros enviados e a remoção de cada filtro preservando o outro. Percorre as páginas para conferir os resultados.
 
 Os testes utilizam a interface React, a API Java em execução e H2 em memória, sem simular as chamadas HTTP.
@@ -683,26 +799,29 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 ## Autenticação — em desenvolvimento
 
-A estrutura de persistência de usuários foi criada pela migração V5 e pelas classes `Usuario` e `UsuarioRepository`.
+O cadastro de usuários pela API foi implementado com validação de dados e geração do hash da senha.
 
-Ela contém:
+A estrutura atual inclui:
 
-- ID gerado pelo banco.
-- Nome obrigatório, com remoção de espaços nas extremidades.
-- E-mail obrigatório e único, salvo em minúsculas e sem espaços nas extremidades.
-- Campo `senha_hash` destinado a receber um hash já gerado.
-- Indicação de usuário ativo, habilitada na criação.
+- Tabela `usuarios`, criada pela migração V5.
+- Entidade `Usuario` e repositório de consulta por e-mail.
+- Configuração BCrypt com fator de custo 12 e prefixo `{bcrypt}`.
+- Endpoint `POST /usuarios`.
+- Resposta com somente `id`, `nome`, `email` e `ativo`.
+- Tratamento de dados inválidos e e-mail duplicado.
+- Testes automatizados de persistência, hash e cadastro.
+- Verificação manual do cadastro com PostgreSQL.
 
-O campo de hash está excluído da representação JSON da entidade.
+O campo de hash está excluído da representação JSON da entidade. O objeto de entrada do cadastro também omite a senha na serialização e no método `toString()`.
 
-Essa etapa possui 5 testes de integração com H2. Ainda não há cadastro de usuários pela API, geração de hash, login, perfis de acesso ou controle de acesso aos chamados. A validação do formato do e-mail também será implementada na etapa de cadastro.
+Ainda não há login, sessão autenticada, perfis de acesso, recuperação de senha ou controle de acesso aos chamados. O cadastro não confirma a propriedade do e-mail.
 
 Os chamados existentes ainda não possuem vínculo com usuários.
 
 ## Próximas melhorias
 
-- Implementar cadastro de usuários com validação e geração segura do hash da senha.
 - Implementar login e autorização de acesso aos chamados.
+- Criar as telas de cadastro de usuários e login.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
 
