@@ -1,5 +1,9 @@
 package br.com.guilhermetonelli.chamados;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,7 +40,13 @@ class ChamadoFiltrosCombinadosTest {
 
     @BeforeEach
     void preparar() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+       mockMvc = MockMvcBuilders
+    .webAppContextSetup(context)
+    .defaultRequest(get("/")
+        .with(user("teste@example.com"))
+        .with(csrf()))
+    .apply(springSecurity())
+    .build();
 
         // Limpa somente os dados do banco de testes desta transação.
         repository.deleteAll();

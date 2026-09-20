@@ -1,5 +1,7 @@
 package br.com.guilhermetonelli.chamados;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -53,7 +55,10 @@ class UsuarioCadastroTest {
 
     @BeforeEach
     void preparar() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders
+    .webAppContextSetup(context)
+    .apply(springSecurity())
+    .build();
 
         repository.deleteAll();
         repository.flush();
@@ -71,7 +76,7 @@ class UsuarioCadastroTest {
             .andExpect(jsonPath("$.senha").doesNotExist())
             .andExpect(jsonPath("$.senhaHash").doesNotExist())
             .andExpect(jsonPath("$.senha_hash").doesNotExist());
-
+            
         entityManager.clear();
 
         Usuario usuario = repository.findByEmail("ana@example.com")
@@ -220,14 +225,14 @@ class UsuarioCadastroTest {
             .orElseThrow();
 
         assertTrue(passwordEncoder.matches(senha, usuario.getSenhaHash()));
-        assertFalse(
-            passwordEncoder.matches(senha.trim(), usuario.getSenhaHash())
+        assertFalse(passwordEncoder.matches(senha.trim(), usuario.getSenhaHash())
         );
     }
 
     @Test
     void deveRejeitarJsonMalformado() throws Exception {
         mockMvc.perform(post("/usuarios")
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{"))
             .andExpect(status().isBadRequest())
@@ -251,6 +256,7 @@ class UsuarioCadastroTest {
         dados.put("senha", senha);
 
         return mockMvc.perform(post("/usuarios")
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(dados)));
     }

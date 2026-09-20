@@ -1,8 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect } from './autenticacao'
+import { test, expect, obterCabecalhosCsrf } from './autenticacao'
 
 async function criarChamado(request, titulo, prioridade, resolvido) {
+  const headers = await obterCabecalhosCsrf(request)
+
   const resposta = await request.post('/api/chamados', {
+    headers,
     data: {
       titulo,
       descricao: 'Chamado temporário para testar filtros combinados.',
@@ -17,12 +20,20 @@ async function criarChamado(request, titulo, prioridade, resolvido) {
   if (resolvido) {
     const atendimento = await request.patch(
       `/api/chamados/${chamado.id}/atendimento`,
+      {
+        headers: await obterCabecalhosCsrf(request),
+      },
     )
+
     expect(atendimento.status()).toBe(200)
 
     const resolucao = await request.patch(
       `/api/chamados/${chamado.id}/resolucao`,
+      {
+        headers: await obterCabecalhosCsrf(request),
+      },
     )
+
     expect(resolucao.status()).toBe(200)
   }
 
@@ -151,8 +162,9 @@ async function conferirResultados(
 
 test('combina status e prioridade e remove cada filtro preservando o outro', async ({
   page,
-  request,
 }) => {
+  // Compartilha os cookies da sessão criada pelo login no navegador.
+  const request = page.request
   const prefixo = `Filtros E2E ${randomUUID()}`
 
   const abertoAlta = await criarChamado(

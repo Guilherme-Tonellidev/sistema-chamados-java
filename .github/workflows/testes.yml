@@ -63,7 +63,7 @@ jobs:
         run: npm run build
 
   e2e:
-    name: Testar cadastro no navegador
+    name: Testar chamados e autenticacao no navegador
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -116,7 +116,7 @@ jobs:
             fi
 
             if curl --fail --silent --max-time 2 \
-              http://127.0.0.1:8081/chamados \
+              http://127.0.0.1:8081/auth/csrf \
               > /dev/null; then
               api_pronta=true
               break

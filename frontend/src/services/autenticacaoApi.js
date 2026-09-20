@@ -10,7 +10,7 @@ async function lerResposta(resposta, mensagemErro) {
   return resultado
 }
 
-async function obterCsrf() {
+export async function obterCsrf() {
   const resposta = await fetch(`${URL_BASE}/csrf`, {
     credentials: 'same-origin',
     cache: 'no-store',

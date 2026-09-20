@@ -3,6 +3,13 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './PainelChamados'
 
+vi.mock('./services/autenticacaoApi', () => ({
+  obterCsrf: vi.fn(async () => ({
+    headerName: 'X-CSRF-TOKEN',
+    token: 'csrf-teste',
+  })),
+}))
+
 const chamadoAberto = {
   id: 3,
   titulo: 'Impressora não imprime',
@@ -138,8 +145,10 @@ describe('Interface de chamados', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/chamados', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': 'csrf-teste',
       },
       body: JSON.stringify({
         titulo: chamadoAberto.titulo,
@@ -318,7 +327,13 @@ describe('Interface de chamados', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/chamados/3/atendimento',
-      { method: 'PATCH' },
+      {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': 'csrf-teste',
+        },
+      },
     )
 
     expect(
@@ -367,7 +382,13 @@ describe('Interface de chamados', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/chamados/3/resolucao',
-      { method: 'PATCH' },
+      {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': 'csrf-teste',
+        },
+      },
     )
 
     await waitFor(() => {

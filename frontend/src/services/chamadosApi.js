@@ -1,10 +1,16 @@
+import { obterCsrf } from './autenticacaoApi'
+
 const URL_BASE = '/api/chamados'
 
 async function lerResposta(resposta, mensagemErro) {
   const resultado = await resposta.json().catch(() => null)
 
   if (!resposta.ok) {
-    throw new Error(resultado?.erro || mensagemErro)
+    throw new Error(
+      resposta.status === 401
+        ? 'Sua sessão expirou. Recarregue a página para entrar novamente.'
+        : resultado?.erro || mensagemErro,
+    )
   }
 
   return resultado
@@ -32,7 +38,10 @@ export async function listarChamados({
 
   const resposta = await fetch(
     `${URL_BASE}/paginados?${parametros}`,
-    { signal },
+    {
+      credentials: 'same-origin',
+      signal,
+    },
   )
 
   const resultado = await lerResposta(
@@ -61,10 +70,14 @@ export async function criarChamado({
     dados.prioridade = prioridade
   }
 
+  const csrf = await obterCsrf()
+
   const resposta = await fetch(URL_BASE, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
+      [csrf.headerName]: csrf.token,
     },
     body: JSON.stringify(dados),
   })
@@ -76,9 +89,17 @@ export async function criarChamado({
 }
 
 async function enviarTransicao(id, endpoint) {
+  const csrf = await obterCsrf()
+
   const resposta = await fetch(
     `${URL_BASE}/${id}/${endpoint}`,
-    { method: 'PATCH' },
+    {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: {
+        [csrf.headerName]: csrf.token,
+      },
+    },
   )
 
   return lerResposta(

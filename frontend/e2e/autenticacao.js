@@ -1,6 +1,23 @@
 import { randomUUID } from 'node:crypto'
 import { test as testeBase, expect } from '@playwright/test'
 
+export async function obterCabecalhosCsrf(request) {
+  const resposta = await request.get('/api/auth/csrf')
+
+  expect(resposta.status()).toBe(200)
+
+  const dados = await resposta.json()
+
+  expect(typeof dados.headerName).toBe('string')
+  expect(typeof dados.token).toBe('string')
+  expect(dados.headerName.length).toBeGreaterThan(0)
+  expect(dados.token.length).toBeGreaterThan(0)
+
+  return {
+    [dados.headerName]: dados.token,
+  }
+}
+
 export async function criarUsuarioTeste(request) {
   const usuario = {
     nome: 'Usuario E2E',
@@ -8,7 +25,10 @@ export async function criarUsuarioTeste(request) {
     senha: 'SenhaTemporaria-E2E-2026!',
   }
 
+  const headers = await obterCabecalhosCsrf(request)
+
   const resposta = await request.post('/api/usuarios', {
+    headers,
     data: usuario,
   })
 
@@ -37,7 +57,7 @@ export async function entrarPelaInterface(page, usuario) {
   ).toBeEnabled()
 }
 
-// Os testes de chamados começam com um usuário novo e autenticado.
+// Prepara um usuário novo e faz login antes dos testes de chamados.
 export const test = testeBase.extend({
   page: async ({ page, request }, executarTeste) => {
     const usuario = await criarUsuarioTeste(request)

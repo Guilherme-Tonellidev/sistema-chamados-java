@@ -1,6 +1,9 @@
 package br.com.guilhermetonelli.chamados;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import org.junit.jupiter.api.BeforeEach;
 
@@ -32,6 +35,9 @@ public abstract class BaseIntegracaoTest {
 
         mockMvc = MockMvcBuilders
             .webAppContextSetup(context)
+            .defaultRequest(get("/")
+                .with(user("teste@example.com"))
+                .with(csrf()))
             .apply(springSecurity())
             .build();
     }

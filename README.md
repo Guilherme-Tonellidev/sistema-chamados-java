@@ -478,7 +478,110 @@ Exemplo de conflito no cadastro de usuário:
 
 ## Exemplos da API no PowerShell
 
-Com a API em execução, abra outro terminal e execute os exemplos de chamados na ordem, na mesma sessão.
+Com a API em execução, abra outro terminal. Execute os exemplos na ordem,
+na mesma sessão do PowerShell, para preservar as variáveis e os cookies.
+
+Os comandos de cadastro criam registros no banco utilizado pela API.
+A senha de demonstração é fictícia e não deve ser reutilizada em contas reais.
+
+### Preparar a sessão e obter o token CSRF
+
+```powershell
+$urlApi = "http://localhost:8080"
+
+$csrf = Invoke-RestMethod `
+    -Uri "$urlApi/auth/csrf" `
+    -SessionVariable sessaoApi `
+    -ErrorAction Stop
+```
+
+A variável `sessaoApi` guarda os cookies utilizados nas próximas requisições.
+Obter o token CSRF ainda não autentica o usuário.
+
+Defina esta função para obter um token atualizado antes das operações de escrita:
+
+```powershell
+function Obter-CabecalhoCsrf {
+    $token = Invoke-RestMethod `
+        -Uri "$urlApi/auth/csrf" `
+        -WebSession $sessaoApi `
+        -ErrorAction Stop
+
+    $cabecalhos = @{}
+    $cabecalhos[$token.headerName] = $token.token
+
+    return $cabecalhos
+}
+```
+
+### Cadastrar um usuário de demonstração
+
+O exemplo gera um e-mail diferente a cada execução para evitar conflito
+com uma conta de demonstração já cadastrada.
+
+```powershell
+$emailDemonstracao = "demo-$([guid]::NewGuid().ToString('N'))@example.com"
+$senhaDemonstracao = "DemonstracaoLocal-2026!"
+
+$dadosUsuario = @{
+    nome = "Usuario Demonstracao"
+    email = $emailDemonstracao
+    senha = $senhaDemonstracao
+} | ConvertTo-Json
+
+$parametrosUsuario = @{
+    Uri = "$urlApi/usuarios"
+    Method = "Post"
+    WebSession = $sessaoApi
+    Headers = (Obter-CabecalhoCsrf)
+    ContentType = "application/json; charset=utf-8"
+    Body = [System.Text.Encoding]::UTF8.GetBytes($dadosUsuario)
+    ErrorAction = "Stop"
+}
+
+Invoke-RestMethod @parametrosUsuario
+```
+
+O cadastro não exige login, mas exige CSRF. A resposta apresenta
+`id`, `nome`, `email` e `ativo`, sem senha ou hash.
+
+Repetir o cadastro com o mesmo e-mail retorna HTTP 409.
+
+### Entrar com o usuário criado
+
+O login recebe dados no formato de formulário, não JSON.
+
+```powershell
+$parametrosLogin = @{
+    Uri = "$urlApi/auth/login"
+    Method = "Post"
+    WebSession = $sessaoApi
+    Headers = (Obter-CabecalhoCsrf)
+    ContentType = "application/x-www-form-urlencoded"
+    Body = @{
+        email = $emailDemonstracao
+        senha = $senhaDemonstracao
+    }
+    ErrorAction = "Stop"
+}
+
+Invoke-RestMethod @parametrosLogin
+```
+
+O sucesso retorna HTTP 204, sem corpo de resposta. Os cookies da sessão
+são atualizados em `sessaoApi`.
+
+Após o login, o token CSRF anterior é invalidado. A função
+`Obter-CabecalhoCsrf` obtém um token atualizado antes de cada escrita.
+
+### Consultar o usuário conectado
+
+```powershell
+Invoke-RestMethod `
+    -Uri "$urlApi/auth/me" `
+    -WebSession $sessaoApi `
+    -ErrorAction Stop
+```
 
 ### Abrir um chamado
 
@@ -490,10 +593,13 @@ $dados = @{
 } | ConvertTo-Json
 
 $parametrosCadastro = @{
-    Uri = "http://localhost:8080/chamados"
+    Uri = "$urlApi/chamados"
     Method = "Post"
+    WebSession = $sessaoApi
+    Headers = (Obter-CabecalhoCsrf)
     ContentType = "application/json; charset=utf-8"
-    Body = $dados
+    Body = [System.Text.Encoding]::UTF8.GetBytes($dados)
+    ErrorAction = "Stop"
 }
 
 $chamado = Invoke-RestMethod @parametrosCadastro
@@ -503,55 +609,73 @@ $chamado
 ### Listar chamados
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados"
+Invoke-RestMethod `
+    -Uri "$urlApi/chamados" `
+    -WebSession $sessaoApi `
+    -ErrorAction Stop
 ```
 
 ### Buscar o chamado criado
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)"
+Invoke-RestMethod `
+    -Uri "$urlApi/chamados/$($chamado.id)" `
+    -WebSession $sessaoApi `
+    -ErrorAction Stop
 ```
 
 ### Consultar com filtros combinados
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/paginados?pagina=0&tamanho=5&status=Aberto&prioridade=Alta"
+Invoke-RestMethod `
+    -Uri "$urlApi/chamados/paginados?pagina=0&tamanho=5&status=Aberto&prioridade=Alta" `
+    -WebSession $sessaoApi `
+    -ErrorAction Stop
 ```
 
 ### Iniciar atendimento
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/atendimento" -Method Patch
+Invoke-RestMethod `
+    -Uri "$urlApi/chamados/$($chamado.id)/atendimento" `
+    -Method Patch `
+    -WebSession $sessaoApi `
+    -Headers (Obter-CabecalhoCsrf) `
+    -ErrorAction Stop
 ```
 
 ### Resolver o chamado
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/chamados/$($chamado.id)/resolucao" -Method Patch
+Invoke-RestMethod `
+    -Uri "$urlApi/chamados/$($chamado.id)/resolucao" `
+    -Method Patch `
+    -WebSession $sessaoApi `
+    -Headers (Obter-CabecalhoCsrf) `
+    -ErrorAction Stop
 ```
 
-### Cadastrar um usuário de demonstração
-
-Este exemplo cria um registro no banco utilizado pela API. A senha é fictícia e não deve ser reutilizada em contas reais.
+### Encerrar a sessão
 
 ```powershell
-$dadosUsuario = @{
-    nome = "Usuario Demonstracao"
-    email = "demo@example.com"
-    senha = "DemonstracaoLocal-2026!"
-} | ConvertTo-Json
-
-$parametrosUsuario = @{
-    Uri = "http://localhost:8080/usuarios"
-    Method = "Post"
-    ContentType = "application/json; charset=utf-8"
-    Body = $dadosUsuario
-}
-
-Invoke-RestMethod @parametrosUsuario
+Invoke-RestMethod `
+    -Uri "$urlApi/auth/logout" `
+    -Method Post `
+    -WebSession $sessaoApi `
+    -Headers (Obter-CabecalhoCsrf) `
+    -ErrorAction Stop
 ```
 
-A resposta apresenta `id`, `nome`, `email` e `ativo`. Repetir o cadastro com esse e-mail retorna conflito.
+O sucesso retorna HTTP 204, sem corpo de resposta. Após o logout, consultar
+`/auth/me` ou os chamados exige um novo login.
+
+### Respostas de segurança
+
+- Consultas protegidas sem sessão autenticada retornam HTTP 401.
+- Operações de escrita sem token CSRF válido retornam HTTP 403.
+- Um token CSRF válido não substitui a autenticação.
+- Qualquer usuário autenticado pode operar os chamados nesta etapa;
+  ainda não há restrições por proprietário ou perfil.
 
 ## Persistência e migrações
 
@@ -592,7 +716,7 @@ Para conferir a persistência dos chamados:
 
 ## Testes e verificações
 
-### Back-end — 77 testes de integração
+### Back-end — 97 testes automatizados
 
 Na raiz do projeto:
 
@@ -602,6 +726,9 @@ mvn clean test
 
 A suíte cobre:
 
+- Bloqueio de consultas e operações de chamados sem autenticação.
+- Rejeição de operações de escrita sem CSRF.
+- Cadastro e transições de chamados com autenticação e CSRF.
 - Cadastro, listagem e busca de chamados por ID.
 - Validação dos campos e das prioridades.
 - Transições de status.
@@ -797,7 +924,7 @@ O badge no início deste README indica o resultado do workflow no GitHub.
 
 [Consultar execuções no GitHub Actions](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
-## Autenticação — login implementado, autorização em desenvolvimento
+## Autenticação e proteção da API
 
 O cadastro de usuários pela API e o login pela interface estão implementados.
 
@@ -812,7 +939,8 @@ A estrutura atual inclui:
 - Autenticação com sessão mantida por cookie.
 - Recuperação da sessão ao recarregar a página.
 - Logout com encerramento da sessão no servidor.
-- Proteção CSRF nos endpoints de autenticação.
+- Proteção CSRF no login, logout, cadastro de usuários, cadastro de chamados e mudanças de status.
+- Exigência de autenticação em todos os endpoints de chamados.
 - Troca do identificador da sessão após o login.
 - Rejeição de credenciais inválidas e contas inativas.
 - Mensagem genérica de falha, sem informar se o e-mail existe.
@@ -839,23 +967,29 @@ A senha não é armazenada pela aplicação no armazenamento local do navegador.
 O hash é excluído da representação JSON da entidade. O objeto de entrada do
 cadastro também omite a senha na serialização e no método `toString()`.
 
-### Limites da implementação atual
+### Controle de acesso e limites atuais
 
-A interface exige login para mostrar o painel, mas os endpoints de chamados
-ainda estão públicos e podem ser acessados diretamente sem autenticação.
-A proteção CSRF atual está limitada aos caminhos `/auth/**`.
+Todos os endpoints de chamados exigem uma sessão autenticada, incluindo
+listagem, consulta por ID, paginação, cadastro e mudanças de status.
 
-A exigência de autenticação na API de chamados e as regras de autorização
-serão implementadas na próxima etapa.
+As operações de escrita também exigem um token CSRF válido. O cadastro de
+usuários permanece disponível sem login, mas exige CSRF.
 
-Ainda não há perfis de acesso, recuperação de senha, confirmação de
-propriedade do e-mail ou tela de cadastro de usuários.
+A interface obtém o token em `/auth/csrf` antes de cadastrar um chamado ou
+alterar seu status. Se uma consulta ou operação retornar HTTP 401, apresenta
+uma mensagem orientando o usuário a recarregar a página e entrar novamente.
+
+Qualquer usuário autenticado pode consultar e operar todos os chamados.
+Ainda não há separação por proprietário nem permissões por perfil.
+
+Ainda não há recuperação de senha, confirmação de propriedade do e-mail
+ou tela de cadastro de usuários.
 
 Os chamados existentes ainda não possuem vínculo com usuários.
 
 ## Próximas melhorias
 
-- Exigir autenticação nos endpoints de chamados e implementar regras de autorização.
+- Definir perfis de acesso e regras de autorização por usuário.
 - Criar a tela de cadastro de usuários.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.

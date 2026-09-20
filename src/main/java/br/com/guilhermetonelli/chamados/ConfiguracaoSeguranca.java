@@ -2,6 +2,7 @@ package br.com.guilhermetonelli.chamados;
 
 import java.io.IOException;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -33,13 +34,14 @@ public class ConfiguracaoSeguranca {
             AuthenticationManager authenticationManager) throws Exception {
 
         http
-            // Etapa inicial: os demais endpoints ainda continuam públicos.
-            .securityMatcher("/auth/**")
             .authenticationManager(authenticationManager)
             .authorizeHttpRequests(autorizacao -> autorizacao
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
+                .requestMatchers("/chamados", "/chamados/**").authenticated()
                 .anyRequest().denyAll()
             )
             .csrf(Customizer.withDefaults())

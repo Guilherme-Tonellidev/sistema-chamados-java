@@ -3,6 +3,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './PainelChamados'
 
+vi.mock('./services/autenticacaoApi', () => ({
+  obterCsrf: vi.fn(async () => ({
+    headerName: 'X-CSRF-TOKEN',
+    token: 'csrf-teste',
+  })),
+}))
+
 function resposta(dados, status = 200) {
   return {
     ok: status >= 200 && status < 300,
@@ -73,10 +80,12 @@ describe('Prioridade dos chamados', () => {
 
       await screen.findByRole('heading', { name: chamado.titulo })
 
-      expect(fetchMock).toHaveBeenCalledWith('/api/chamados', {
+          expect(fetchMock).toHaveBeenCalledWith('/api/chamados', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': 'csrf-teste',
         },
         body: JSON.stringify({
           titulo: chamado.titulo,

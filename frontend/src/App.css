@@ -327,7 +327,7 @@ h2 {
 }
 
 .barra-sessao {
-  max-width: 1100px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px 24px 0;
   display: flex;
@@ -346,10 +346,20 @@ h2 {
   flex-shrink: 0;
 }
 
-@media (max-width: 640px) {
+}
+
+/* Ajuste da barra de sessão em telas pequenas */
+@media (max-width: 20000px) {
   .barra-sessao {
-    padding: 16px 16px 0;
+    padding: 12px 12px 0;
     align-items: flex-start;
   }
 }
+
+/* Botão de login em qualquer tamanho de tela */
+.login .formulario > button[type="submit"] {
+  justify-self: center;
+  width: auto;
+  min-width: 8px;
+  padding: 4px 16px;
 }
