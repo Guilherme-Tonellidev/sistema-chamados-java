@@ -115,3 +115,58 @@ export function iniciarAtendimento(id) {
 export function resolverChamado(id) {
   return enviarTransicao(id, 'resolucao')
 }
+
+export async function buscarChamado(id, { signal } = {}) {
+  const resposta = await fetch(`${URL_BASE}/${id}`, {
+    credentials: 'same-origin',
+    signal,
+  })
+
+  return lerResposta(
+    resposta,
+    'Não foi possível carregar os detalhes do chamado.',
+  )
+}
+
+export async function listarFotosChamado(id, { signal } = {}) {
+  const resposta = await fetch(`${URL_BASE}/${id}/fotos`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    signal,
+  })
+
+  const resultado = await lerResposta(
+    resposta,
+    'Não foi possível carregar as fotos.',
+  )
+
+  if (!Array.isArray(resultado)) {
+    throw new Error('A resposta recebida não contém uma lista de fotos.')
+  }
+
+  return resultado
+}
+
+export async function enviarFotosChamado(id, arquivos) {
+  const csrf = await obterCsrf()
+  const formulario = new FormData()
+
+  for (const arquivo of arquivos) {
+    formulario.append('fotos', arquivo)
+  }
+
+  const resposta = await fetch(`${URL_BASE}/${id}/fotos`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      [csrf.headerName]: csrf.token,
+    },
+    body: formulario,
+  })
+
+  return lerResposta(resposta, 'Não foi possível enviar as fotos.')
+}
+
+export function urlFotoChamado(chamadoId, fotoId) {
+  return `${URL_BASE}/${encodeURIComponent(chamadoId)}/fotos/${encodeURIComponent(fotoId)}`
+}

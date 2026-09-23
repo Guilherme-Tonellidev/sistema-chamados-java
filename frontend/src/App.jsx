@@ -4,64 +4,53 @@ import FormularioLogin from './components/FormularioLogin'
 import { consultarSessao, sair } from './services/autenticacaoApi'
 import './App.css'
 
-const CHAVE_TEMA = 'sistema-chamados-tema'
-
-function lerTemaSalvo() {
-  try {
-    return localStorage.getItem(CHAVE_TEMA) === 'escuro'
-      ? 'escuro'
-      : 'claro'
-  } catch {
-    return 'claro'
-  }
-}
-
 function Acesso({ children }) {
-  const [tema, setTema] = useState(lerTemaSalvo)
-  const temaEscuro = tema === 'escuro'
-
-  useEffect(() => {
-    document.documentElement.dataset.tema = tema
-
-    try {
-      localStorage.setItem(CHAVE_TEMA, tema)
-    } catch {
-      // A troca de tema funciona mesmo sem acesso ao armazenamento.
-    }
-  }, [tema])
-
   return (
-    <main className="painel painel-acesso">
-      <header className="cabecalho">
-        <div>
-          <p className="marca">CENTRAL DE SUPORTE</p>
-          <h1>Chamados de TI</h1>
-          <p className="subtitulo">
-            Acompanhe as solicitações e o andamento dos atendimentos.
-          </p>
-        </div>
+    <main className="acesso-elodesk">
+      <div className="acesso-orbita" aria-hidden="true" />
 
-        <button
-          type="button"
-          className="botao-tema"
-          onClick={() =>
-            setTema((atual) => (atual === 'claro' ? 'escuro' : 'claro'))
-          }
-          aria-label={
-            temaEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'
-          }
-        >
-          <span className="icone-tema" aria-hidden="true">
-            {temaEscuro ? '☀' : '☾'}
-          </span>
-          {temaEscuro ? 'Tema claro' : 'Tema escuro'}
-        </button>
-      </header>
+      <div className="acesso-centro">
+        <header className="acesso-marca">
+          <div className="elodesk-identidade">
+            <svg
+              className="elodesk-simbolo"
+              viewBox="0 0 48 48"
+              fill="none"
+              aria-hidden="true"
+            >
+              <rect
+                x="5"
+                y="15"
+                width="27"
+                height="18"
+                rx="9"
+                transform="rotate(-35 18.5 24)"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <rect
+                x="16"
+                y="15"
+                width="27"
+                height="18"
+                rx="9"
+                transform="rotate(-35 29.5 24)"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+            </svg>
 
-      {children}
+            <h1>EloDesk</h1>
+          </div>
 
-      <footer className="rodape">
-        Sistema de Chamados · Guilherme Tonelli
+          <p>Seu suporte, mais próximo.</p>
+        </header>
+
+        {children}
+      </div>
+
+      <footer className="acesso-rodape">
+        EloDesk · Desenvolvido por Guilherme Tonelli
       </footer>
     </main>
   )
@@ -145,21 +134,12 @@ export default function App() {
 
   if (estado === 'autenticado' && usuario) {
     return (
-      <>
-        <div className="barra-sessao">
-          <p>
-            Conectado como <strong>{usuario.nome}</strong>
-          </p>
-          <button type="button" onClick={encerrarSessao}>
-            Sair
-          </button>
-        </div>
-
-        <PainelChamados />
-      </>
+      <PainelChamados
+        usuario={usuario}
+        aoSair={encerrarSessao}
+      />
     )
-  }
-
+}
   return (
     <Acesso>
       {(estado === 'consultando' || estado === 'saindo') && (

@@ -4,8 +4,13 @@ import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,10 +37,15 @@ public class Usuario {
     @Column(nullable = false)
     private boolean ativo;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 20)
+    private PerfilUsuario perfil = PerfilUsuario.SOLICITANTE;
+
     protected Usuario() {
     }
 
-    // Recebe um hash já gerado. Não recebe nem transforma uma senha em texto.
+    // Recebe um hash já gerado. Não recebe uma senha em texto.
     public Usuario(String nome, String email, String senhaHash) {
         this.nome = validarTexto(
             nome == null ? null : nome.trim(),
@@ -51,6 +61,7 @@ public class Usuario {
 
         this.senhaHash = validarTexto(senhaHash, "Hash da senha", 255);
         this.ativo = true;
+        this.perfil = PerfilUsuario.SOLICITANTE;
     }
 
     private static String validarTexto(
@@ -92,5 +103,9 @@ public class Usuario {
 
     public boolean isAtivo() {
         return ativo;
+    }
+
+    public PerfilUsuario getPerfil() {
+        return perfil;
     }
 }

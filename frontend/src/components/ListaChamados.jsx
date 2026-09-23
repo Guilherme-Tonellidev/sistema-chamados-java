@@ -1,15 +1,22 @@
 import Paginacao from './Paginacao'
 import StatusChamado from './StatusChamado'
 
+const filtrosStatus = [
+  { valor: '', nome: 'Todos' },
+  { valor: 'Aberto', nome: 'Abertos' },
+  { valor: 'Em atendimento', nome: 'Em atendimento' },
+  { valor: 'Resolvido', nome: 'Resolvidos' },
+]
+
 const textosAcao = {
   Aberto: 'Iniciar atendimento',
   'Em atendimento': 'Resolver chamado',
 }
 
 const classesPrioridade = {
-  Baixa: 'prioridade-texto prioridade-baixa',
-  Normal: 'prioridade-texto prioridade-normal',
-  Alta: 'prioridade-texto prioridade-alta',
+  Baixa: 'selo-baixa',
+  Normal: 'selo-normal',
+  Alta: 'selo-alta',
 }
 
 const formatadorData = new Intl.DateTimeFormat('pt-BR', {
@@ -23,36 +30,24 @@ const formatadorData = new Intl.DateTimeFormat('pt-BR', {
 
 function DataAbertura({ valor }) {
   if (!valor) {
-    return (
-      <p className="subtitulo">
-        <small>Data de abertura não registrada</small>
-      </p>
-    )
+    return <span className="tabela-data">Não registrada</span>
   }
 
   const data = new Date(valor)
 
   if (Number.isNaN(data.getTime())) {
-    return (
-      <p className="subtitulo">
-        <small>Data de abertura indisponível</small>
-      </p>
-    )
+    return <span className="tabela-data">Indisponível</span>
   }
 
   return (
-    <p className="subtitulo">
-      <small>
-        Aberto em{' '}
-        <time dateTime={data.toISOString()}>
-          {formatadorData.format(data)}
-        </time>
-      </small>
-    </p>
+    <time className="tabela-data" dateTime={data.toISOString()}>
+      {formatadorData.format(data)}
+    </time>
   )
 }
 
 export default function ListaChamados({
+  aoAbrirChamado,
   dados,
   filtro,
   filtroPrioridade,
@@ -69,10 +64,30 @@ export default function ListaChamados({
   aoMudarPagina,
 }) {
   const alterandoStatus = idEmAlteracao !== null
+  const filtrosBloqueados = carregando || bloqueado
 
   return (
-    <section className="conteudo" aria-labelledby="titulo-lista">
-      <div className="barra-filtros">
+    <section className="elodesk-listagem" aria-labelledby="titulo-lista">
+      <div
+        className="elodesk-abas"
+        role="group"
+        aria-label="Filtrar por status"
+      >
+        {filtrosStatus.map((item) => (
+          <button
+            key={item.valor}
+            type="button"
+            className={filtro === item.valor ? 'aba-ativa' : ''}
+            aria-pressed={filtro === item.valor}
+            disabled={filtrosBloqueados}
+            onClick={() => aoAlterarFiltro(item.valor)}
+          >
+            {item.nome}
+          </button>
+        ))}
+      </div>
+
+      <div className="elodesk-resumo">
         <div>
           <h2 id="titulo-lista">Solicitações</h2>
           <p className="subtitulo">
@@ -85,27 +100,16 @@ export default function ListaChamados({
         </div>
 
         <div className="campo">
-          <label htmlFor="status">Filtrar por status</label>
-          <select
-            id="status"
-            value={filtro}
-            onChange={(event) => aoAlterarFiltro(event.target.value)}
-            disabled={carregando || bloqueado}
-          >
-            <option value="">Todos os status</option>
-            <option value="Aberto">Aberto</option>
-            <option value="Em atendimento">Em atendimento</option>
-            <option value="Resolvido">Resolvido</option>
-          </select>
-        </div>
-
-        <div className="campo">
-          <label htmlFor="filtro-prioridade">Filtrar por prioridade</label>
+          <label htmlFor="filtro-prioridade">
+            Filtrar por prioridade
+          </label>
           <select
             id="filtro-prioridade"
             value={filtroPrioridade}
-            onChange={(event) => aoAlterarFiltroPrioridade(event.target.value)}
-            disabled={carregando || bloqueado}
+            onChange={(event) =>
+              aoAlterarFiltroPrioridade(event.target.value)
+            }
+            disabled={filtrosBloqueados}
           >
             <option value="">Todas as prioridades</option>
             <option value="Baixa">Baixa</option>
@@ -121,7 +125,7 @@ export default function ListaChamados({
           <button
             type="button"
             onClick={aoAtualizar}
-            disabled={carregando || bloqueado}
+            disabled={filtrosBloqueados}
           >
             Atualizar lista
           </button>
@@ -154,56 +158,101 @@ export default function ListaChamados({
           <p className="mensagem">
             Nenhum chamado encontrado nesta página.
           </p>
-        ) : (
-          <ul className="lista-chamados">
-            {dados?.chamados.map((chamado) => {
-              const textoAcao = textosAcao[chamado.status]
-              const atualizandoEste = idEmAlteracao === chamado.id
+        ) : dados ? (
+          <div
+            className="elodesk-tabela-rolagem"
+            role="region"
+            aria-label="Tabela de chamados"
+            tabIndex={0}
+          >
+            <table className="elodesk-tabela">
+              <caption className="elodesk-somente-leitor">
+                Chamados da página atual
+              </caption>
 
-              return (
-                <li key={chamado.id} className="chamado">
-                  <div className="chamado-topo">
-                    <span className="identificador">#{chamado.id}</span>
-                    <StatusChamado chamado={chamado} />
-                  </div>
+              <thead>
+                <tr>
+                  <th scope="col">Chamado</th>
+                  <th scope="col">Título</th>
+                  <th scope="col">Prioridade</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Abertura</th>
+                  <th scope="col">Ações</th>
+                </tr>
+              </thead>
 
-                  <div className="acoes-formulario">
-                    <div>
-                      <h3>{chamado.titulo}</h3>
+              <tbody>
+                {dados.chamados.map((chamado) => {
+                  const textoAcao = textosAcao[chamado.status]
+                  const atualizandoEste = idEmAlteracao === chamado.id
 
-                      <DataAbertura valor={chamado.dataAbertura} />
+                  return (
+                    <tr key={chamado.id}>
+                      <th scope="row">
+                        <button
+                          type="button"
+                          className="tabela-link"
+                          onClick={() => aoAbrirChamado(chamado.id)}
+                          aria-label={`Abrir chamado #${chamado.id}`}
+                        >
+                          #{chamado.id}
+                        </button>
+                      </th>
 
-                      <p className="descricao">{chamado.descricao}</p>
-
-                      <p className="subtitulo">
-                        <small>
-                          Prioridade:{' '}
-                          <strong
-                            className={classesPrioridade[chamado.prioridade]}
+                      <td className="tabela-assunto">
+                        <h3>
+                          <button
+                            type="button"
+                            className="tabela-link tabela-link-titulo"
+                            onClick={() => aoAbrirChamado(chamado.id)}
                           >
-                            {chamado.prioridade || 'Não informada'}
-                          </strong>
-                        </small>
-                      </p>
-                    </div>
+                            {chamado.titulo}
+                          </button>
+                        </h3>
+                      </td>
 
-                    {textoAcao && (
-                      <button
-                        type="button"
-                        className="botao-primario"
-                        onClick={() => aoAlterarStatus(chamado)}
-                        disabled={bloqueado}
-                        aria-label={`${textoAcao}: chamado #${chamado.id}`}
-                      >
-                        {atualizandoEste ? 'Atualizando…' : textoAcao}
-                      </button>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                      <td>
+                        <span
+                          className={`selo-prioridade ${
+                            classesPrioridade[chamado.prioridade] || ''
+                          }`}
+                        >
+                          {chamado.prioridade || 'Não informada'}
+                        </span>
+                      </td>
+
+                      <td>
+                        <StatusChamado chamado={chamado} />
+                      </td>
+
+                      <td>
+                        <DataAbertura valor={chamado.dataAbertura} />
+                      </td>
+
+                      <td>
+                        {textoAcao ? (
+                          <button
+                            type="button"
+                            className="tabela-acao"
+                            onClick={() => aoAlterarStatus(chamado)}
+                            disabled={bloqueado}
+                            aria-label={`${textoAcao}: chamado #${chamado.id}`}
+                          >
+                            {atualizandoEste ? 'Atualizando…' : textoAcao}
+                          </button>
+                        ) : (
+                          <span className="tabela-concluido">
+                            Concluído
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </div>
 
       {!carregando && !erro && dados && (

@@ -11,8 +11,16 @@ vi.mock('./services/autenticacaoApi', () => ({
 }))
 
 vi.mock('./PainelChamados', () => ({
-  default: function PainelSimulado() {
-    return <h2>Painel de chamados autenticado</h2>
+  default: function PainelChamadosSimulado({ usuario, aoSair }) {
+    return (
+      <div>
+        <h2>Painel de chamados autenticado</h2>
+        <p>{usuario.nome}</p>
+        <button type="button" onClick={aoSair}>
+          Sair
+        </button>
+      </div>
+    )
   },
 }))
 

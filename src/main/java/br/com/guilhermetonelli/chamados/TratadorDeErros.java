@@ -8,6 +8,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 public class TratadorDeErros {
@@ -69,6 +71,30 @@ public class TratadorDeErros {
             HttpStatus.BAD_REQUEST,
             "O parâmetro '" + exception.getName()
                 + "' deve ser um número inteiro válido.",
+            request
+        );
+    }
+
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErroResposta> tratarUploadAcimaDoLimite(
+            MaxUploadSizeExceededException exception,
+            HttpServletRequest request) {
+
+        return responder(
+            HttpStatus.PAYLOAD_TOO_LARGE,
+            "O envio ultrapassou o limite. Envie até 5 fotos de 5 MB cada.",
+            request
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErroResposta> tratarFotoAusente(
+            MissingServletRequestPartException exception,
+            HttpServletRequest request) {
+
+        return responder(
+            HttpStatus.BAD_REQUEST,
+            "Selecione as fotos para enviar.",
             request
         );
     }

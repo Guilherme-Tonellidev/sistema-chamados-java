@@ -1,5 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './PainelChamados'
 
@@ -15,6 +21,8 @@ const chamadoAberto = {
   titulo: 'Impressora não imprime',
   descricao: 'A impressora não responde ao enviar documentos.',
   status: 'Aberto',
+  prioridade: 'Normal',
+  dataAbertura: '2026-09-21T12:00:00Z',
 }
 
 function resposta(dados, status = 200) {
@@ -25,52 +33,309 @@ function resposta(dados, status = 200) {
   }
 }
 
-function pagina(chamados, numero = 0, total = chamados.length) {
-  const tamanho = 5
-  const totalPaginas = Math.ceil(total / tamanho)
+let api
+let fetchMock
+let restauracoes = []
 
-  return {
-    chamados,
-    pagina: numero,
-    tamanho,
-    totalElementos: total,
-    totalPaginas,
-    temProxima: numero + 1 < totalPaginas,
-  }
+function simularMetodo(objeto, nome, implementacao) {
+  const original = Object.getOwnPropertyDescriptor(objeto, nome)
+
+  Object.defineProperty(objeto, nome, {
+    configurable: true,
+    writable: true,
+    value: vi.fn(implementacao),
+  })
+
+  restauracoes.push(() => {
+    if (original) {
+      Object.defineProperty(objeto, nome, original)
+    } else {
+      Reflect.deleteProperty(objeto, nome)
+    }
+  })
 }
 
-let fetchMock
+function chamadasPara(caminho, metodo) {
+  return fetchMock.mock.calls.filter(([endereco, opcoes = {}]) => {
+    const url = new URL(endereco, 'http://localhost')
+
+    return url.pathname === caminho &&
+      (opcoes.method || 'GET') === metodo
+  })
+}
+
+function ultimaConsulta() {
+  const chamadas = chamadasPara('/api/chamados/paginados', 'GET')
+
+  return new URL(chamadas.at(-1)[0], 'http://localhost')
+}
+
+function tabela() {
+  return screen.getByRole('table', {
+    name: 'Chamados da página atual',
+  })
+}
+
+function linhaChamado(id = 3) {
+  return within(tabela())
+    .getByRole('button', { name: `Abrir chamado #${id}` })
+    .closest('tr')
+}
+
+async function abrirCadastro(usuario) {
+  await usuario.click(
+    screen.getByRole('button', { name: /Criar chamado/ }),
+  )
+
+  return screen.getByRole('region', { name: 'Novo chamado' })
+}
+
+async function preencherCadastro(usuario, regiao) {
+  const formulario = within(regiao)
+
+  await usuario.type(
+    formulario.getByLabelText('Título'),
+    `  ${chamadoAberto.titulo}  `,
+  )
+
+  await usuario.type(
+    formulario.getByLabelText('Descrição'),
+    `  ${chamadoAberto.descricao}  `,
+  )
+}
+
+async function cadastrar(usuario, regiao) {
+  await usuario.click(
+    within(regiao).getByRole('button', {
+      name: 'Cadastrar chamado',
+    }),
+  )
+}
+
+async function aguardarDetalhes() {
+  const dialogo = await screen.findByRole('dialog', {
+    name: 'Chamado #3',
+  })
+
+  await within(dialogo).findByRole('heading', {
+    name: chamadoAberto.titulo,
+  })
+
+  return dialogo
+}
+
+async function fecharDetalhes(usuario, dialogo) {
+  await usuario.click(
+    within(dialogo).getByRole('button', {
+      name: 'Fechar detalhes do chamado',
+    }),
+  )
+
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+}
+
+function arquivoFoto(nome = 'problema.png') {
+  // O conteúdo real da imagem é validado nos testes Java.
+  // Aqui verificamos seleção, FormData e comportamento da interface.
+  return new File(['imagem para teste da interface'], nome, {
+    type: 'image/png',
+  })
+}
 
 beforeEach(() => {
-  fetchMock = vi.fn()
-  fetchMock.mockResolvedValue(resposta(pagina([])))
+  api = {
+    chamados: [],
+    fotos: {},
+    falhasListagem: 0,
+    erroCadastro: null,
+    erroStatus: null,
+    erroFotos: null,
+  }
+
+  simularMetodo(
+    HTMLDialogElement.prototype,
+    'showModal',
+    function abrirDialogo() {
+      this.setAttribute('open', '')
+    },
+  )
+
+  simularMetodo(
+    HTMLDialogElement.prototype,
+    'close',
+    function fecharDialogo() {
+      this.removeAttribute('open')
+    },
+  )
+
+  let numeroPrevia = 0
+
+  simularMetodo(
+    URL,
+    'createObjectURL',
+    () => `blob:foto-teste-${++numeroPrevia}`,
+  )
+
+  simularMetodo(URL, 'revokeObjectURL', () => {})
+
+  fetchMock = vi.fn(async (endereco, opcoes = {}) => {
+    const url = new URL(endereco, 'http://localhost')
+    const caminho = url.pathname
+    const metodo = opcoes.method || 'GET'
+
+    if (caminho === '/api/chamados/paginados' && metodo === 'GET') {
+      if (api.falhasListagem > 0) {
+        api.falhasListagem -= 1
+        throw new TypeError('Failed to fetch')
+      }
+
+      const numero = Number(url.searchParams.get('pagina') || 0)
+      const tamanho = Number(url.searchParams.get('tamanho') || 5)
+      const status = url.searchParams.get('status')
+      const prioridade = url.searchParams.get('prioridade')
+
+      const filtrados = api.chamados.filter((chamado) =>
+        (!status || chamado.status === status) &&
+        (!prioridade || chamado.prioridade === prioridade),
+      )
+
+      const totalPaginas = Math.ceil(filtrados.length / tamanho)
+
+      return resposta({
+        chamados: filtrados.slice(
+          numero * tamanho,
+          (numero + 1) * tamanho,
+        ),
+        pagina: numero,
+        tamanho,
+        totalElementos: filtrados.length,
+        totalPaginas,
+        temProxima: numero + 1 < totalPaginas,
+      })
+    }
+
+    if (caminho === '/api/chamados' && metodo === 'POST') {
+      if (api.erroCadastro) {
+        return resposta({ erro: api.erroCadastro }, 400)
+      }
+
+      const dados = JSON.parse(opcoes.body)
+      const criado = {
+        ...chamadoAberto,
+        ...dados,
+        prioridade: dados.prioridade || 'Normal',
+      }
+
+      api.chamados.push(criado)
+
+      return resposta(criado, 201)
+    }
+
+    const rotaFotos = caminho.match(/^\/api\/chamados\/(\d+)\/fotos$/)
+
+    if (rotaFotos) {
+      const id = Number(rotaFotos[1])
+
+      if (metodo === 'GET') {
+        return resposta([...(api.fotos[id] || [])])
+      }
+
+      if (metodo === 'POST') {
+        if (api.erroFotos) {
+          return resposta({ erro: api.erroFotos }, 500)
+        }
+
+        const existentes = api.fotos[id] || []
+        const arquivos = opcoes.body.getAll('fotos')
+        const adicionadas = arquivos.map((arquivo, indice) => ({
+          id: `foto-${existentes.length + indice + 1}`,
+          nome: arquivo.name,
+          tipo: arquivo.type,
+          tamanho: arquivo.size,
+        }))
+
+        api.fotos[id] = [...existentes, ...adicionadas]
+
+        return resposta(adicionadas, 201)
+      }
+    }
+
+    const rotaStatus = caminho.match(
+      /^\/api\/chamados\/(\d+)\/(atendimento|resolucao)$/,
+    )
+
+    if (rotaStatus && metodo === 'PATCH') {
+      if (api.erroStatus) {
+        return resposta({ erro: api.erroStatus }, 409)
+      }
+
+      const id = Number(rotaStatus[1])
+      const status = rotaStatus[2] === 'atendimento'
+        ? 'Em atendimento'
+        : 'Resolvido'
+
+      api.chamados = api.chamados.map((chamado) =>
+        chamado.id === id ? { ...chamado, status } : chamado,
+      )
+
+      return resposta(api.chamados.find((chamado) => chamado.id === id))
+    }
+
+    const rotaDetalhes = caminho.match(/^\/api\/chamados\/(\d+)$/)
+
+    if (rotaDetalhes && metodo === 'GET') {
+      const id = Number(rotaDetalhes[1])
+      const chamado = api.chamados.find((item) => item.id === id)
+
+      return chamado
+        ? resposta(chamado)
+        : resposta({ erro: 'Chamado não encontrado.' }, 404)
+    }
+
+    throw new Error(`Requisição não prevista no teste: ${metodo} ${caminho}`)
+  })
+
   vi.stubGlobal('fetch', fetchMock)
 })
 
+afterEach(() => {
+  cleanup()
+
+  for (const restaurar of restauracoes.reverse()) {
+    restaurar()
+  }
+
+  restauracoes = []
+  vi.unstubAllGlobals()
+})
+
 describe('Interface de chamados', () => {
-  it('lista os chamados e desabilita a navegação quando há uma única página', async () => {
-    fetchMock.mockResolvedValue(
-      resposta(pagina([chamadoAberto])),
-    )
+  it('lista os chamados na tabela e mantém a descrição nos detalhes', async () => {
+    api.chamados = [{ ...chamadoAberto }]
 
     render(<App />)
 
+    await screen.findByRole('button', { name: 'Abrir chamado #3' })
+
+    const linha = within(linhaChamado())
+
     expect(
-      await screen.findByRole('heading', {
-        name: chamadoAberto.titulo,
-      }),
+      linha.getByRole('button', { name: chamadoAberto.titulo }),
     ).toBeInTheDocument()
 
     expect(
-      screen.getByText(chamadoAberto.descricao),
-    ).toBeInTheDocument()
+      screen.queryByText(chamadoAberto.descricao),
+    ).not.toBeInTheDocument()
 
+    expect(screen.queryByText('Ver descrição')).not.toBeInTheDocument()
     expect(screen.getByText('Página 1 de 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Próxima' })).toBeDisabled()
 
     expect(
-      screen.getByRole('button', {
+      linha.getByRole('button', {
         name: 'Iniciar atendimento: chamado #3',
       }),
     ).toBeEnabled()
@@ -84,15 +349,13 @@ describe('Interface de chamados', () => {
     ).toBeInTheDocument()
 
     expect(screen.getByText('Nenhuma página')).toBeInTheDocument()
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
-  it('permite tentar novamente após uma falha de conexão na listagem', async () => {
+  it('permite tentar novamente após uma falha de conexão', async () => {
     const usuario = userEvent.setup()
-
-    fetchMock
-      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
-      .mockResolvedValue(resposta(pagina([chamadoAberto])))
+    api.chamados = [{ ...chamadoAberto }]
+    api.falhasListagem = 1
 
     render(<App />)
 
@@ -105,42 +368,28 @@ describe('Interface de chamados', () => {
     )
 
     expect(
-      await screen.findByRole('heading', {
-        name: chamadoAberto.titulo,
-      }),
+      await screen.findByRole('button', { name: 'Abrir chamado #3' }),
     ).toBeInTheDocument()
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('cadastra um chamado, limpa os campos e atualiza a lista', async () => {
+  it('cadastra, abre os detalhes e limpa os campos', async () => {
     const usuario = userEvent.setup()
 
-    fetchMock
-      .mockResolvedValueOnce(resposta(pagina([])))
-      .mockResolvedValueOnce(resposta(chamadoAberto, 201))
-      .mockResolvedValue(resposta(pagina([chamadoAberto])))
-
     render(<App />)
-
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
-    await usuario.type(
-      screen.getByLabelText('Título'),
-      `  ${chamadoAberto.titulo}  `,
-    )
-    await usuario.type(
-      screen.getByLabelText('Descrição'),
-      `  ${chamadoAberto.descricao}  `,
-    )
-    await usuario.click(
-      screen.getByRole('button', { name: 'Cadastrar chamado' }),
-    )
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument()
+
+    const regiao = await abrirCadastro(usuario)
+    await preencherCadastro(usuario, regiao)
+    await cadastrar(usuario, regiao)
+
+    const dialogo = await aguardarDetalhes()
 
     expect(
-      await screen.findByText(
-        'Chamado #3 cadastrado com sucesso! Status inicial: Aberto.',
-      ),
+      within(dialogo).getByText(chamadoAberto.descricao),
     ).toBeInTheDocument()
 
     expect(fetchMock).toHaveBeenCalledWith('/api/chamados', {
@@ -156,13 +405,22 @@ describe('Interface de chamados', () => {
       }),
     })
 
-    expect(screen.getByLabelText('Título')).toHaveValue('')
-    expect(screen.getByLabelText('Descrição')).toHaveValue('')
+    expect(chamadasPara('/api/chamados/3/fotos', 'POST')).toHaveLength(0)
+
+    await fecharDetalhes(usuario, dialogo)
+
+    expect(within(regiao).getByLabelText('Título')).toHaveValue('')
+    expect(within(regiao).getByLabelText('Descrição')).toHaveValue('')
+    expect(within(regiao).getByLabelText('Prioridade')).toHaveValue('Normal')
 
     expect(
-      await screen.findByRole('heading', {
-        name: chamadoAberto.titulo,
-      }),
+      screen.getByText(
+        'Chamado #3 cadastrado com sucesso! Status inicial: Aberto.',
+      ),
+    ).toBeInTheDocument()
+
+    expect(
+      await screen.findByRole('button', { name: 'Abrir chamado #3' }),
     ).toBeInTheDocument()
   })
 
@@ -170,152 +428,102 @@ describe('Interface de chamados', () => {
     const usuario = userEvent.setup()
 
     render(<App />)
-
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
-    await usuario.type(screen.getByLabelText('Título'), '   ')
-    await usuario.type(screen.getByLabelText('Descrição'), '   ')
-    await usuario.click(
-      screen.getByRole('button', { name: 'Cadastrar chamado' }),
-    )
+    const regiao = await abrirCadastro(usuario)
+    const formulario = within(regiao)
+
+    await usuario.type(formulario.getByLabelText('Título'), '   ')
+    await usuario.type(formulario.getByLabelText('Descrição'), '   ')
+    await cadastrar(usuario, regiao)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Preencha o título e a descrição.',
     )
 
-    const cadastros = fetchMock.mock.calls.filter(
-      ([, opcoes]) => opcoes?.method === 'POST',
-    )
-
-    expect(cadastros).toHaveLength(0)
-    expect(screen.getByLabelText('Título')).toHaveValue('   ')
+    expect(chamadasPara('/api/chamados', 'POST')).toHaveLength(0)
+    expect(formulario.getByLabelText('Título')).toHaveValue('   ')
   })
 
   it('preserva os campos quando a API rejeita o cadastro', async () => {
     const usuario = userEvent.setup()
-
-    fetchMock
-      .mockResolvedValueOnce(resposta(pagina([])))
-      .mockResolvedValueOnce(
-        resposta(
-          {
-            status: 400,
-            erro: 'Título inválido.',
-            caminho: '/chamados',
-          },
-          400,
-        ),
-      )
+    api.erroCadastro = 'Título inválido.'
 
     render(<App />)
-
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
-    await usuario.type(
-      screen.getByLabelText('Título'),
-      chamadoAberto.titulo,
-    )
-    await usuario.type(
-      screen.getByLabelText('Descrição'),
-      chamadoAberto.descricao,
-    )
-    await usuario.click(
-      screen.getByRole('button', { name: 'Cadastrar chamado' }),
-    )
+    const regiao = await abrirCadastro(usuario)
+    await preencherCadastro(usuario, regiao)
+    await cadastrar(usuario, regiao)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Título inválido.',
     )
 
-    expect(screen.getByLabelText('Título')).toHaveValue(
-      chamadoAberto.titulo,
+    expect(within(regiao).getByLabelText('Título')).toHaveValue(
+      `  ${chamadoAberto.titulo}  `,
     )
-    expect(screen.getByLabelText('Descrição')).toHaveValue(
-      chamadoAberto.descricao,
+    expect(within(regiao).getByLabelText('Descrição')).toHaveValue(
+      `  ${chamadoAberto.descricao}  `,
     )
     expect(
-      screen.getByRole('button', { name: 'Cadastrar chamado' }),
+      within(regiao).getByRole('button', { name: 'Cadastrar chamado' }),
     ).toBeEnabled()
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(api.chamados).toHaveLength(0)
   })
 
-  it('avança a página e volta à primeira ao alterar o filtro', async () => {
+  it('avança a página e volta à primeira ao clicar no filtro de status', async () => {
     const usuario = userEvent.setup()
 
-    const primeiros = Array.from({ length: 5 }, (_, indice) => ({
-      id: indice + 1,
-      titulo: `Chamado ${indice + 1}`,
-      descricao: 'Solicitação de suporte.',
-      status: 'Aberto',
-    }))
-
-    const resolvido = {
-      id: 6,
-      titulo: 'Chamado resolvido',
-      descricao: 'Atendimento concluído.',
-      status: 'Resolvido',
-    }
-
-    fetchMock
-      .mockResolvedValueOnce(resposta(pagina(primeiros, 0, 6)))
-      .mockResolvedValueOnce(resposta(pagina([resolvido], 1, 6)))
-      .mockResolvedValue(resposta(pagina([resolvido])))
+    api.chamados = [
+      ...Array.from({ length: 5 }, (_, indice) => ({
+        ...chamadoAberto,
+        id: indice + 1,
+        titulo: `Chamado ${indice + 1}`,
+      })),
+      {
+        ...chamadoAberto,
+        id: 6,
+        titulo: 'Chamado resolvido',
+        status: 'Resolvido',
+      },
+    ]
 
     render(<App />)
 
     await screen.findByText('Página 1 de 2')
+    await usuario.click(screen.getByRole('button', { name: 'Próxima' }))
+
+    await screen.findByText('Página 2 de 2')
+
+    expect(ultimaConsulta().searchParams.get('pagina')).toBe('1')
+    expect(ultimaConsulta().searchParams.get('tamanho')).toBe('5')
 
     await usuario.click(
-      screen.getByRole('button', { name: 'Próxima' }),
+      screen.getByRole('button', { name: 'Resolvidos', exact: true }),
     )
+
+    await screen.findByText('Página 1 de 1')
+
+    expect(ultimaConsulta().searchParams.get('pagina')).toBe('0')
+    expect(ultimaConsulta().searchParams.get('status')).toBe('Resolvido')
 
     expect(
-      await screen.findByText('Página 2 de 2'),
-    ).toBeInTheDocument()
+      screen.getByRole('button', { name: 'Resolvidos', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true')
 
-    const urlSegundaPagina = new URL(
-      fetchMock.mock.calls[1][0],
-      'http://localhost',
-    )
-
-    expect(urlSegundaPagina.searchParams.get('pagina')).toBe('1')
-    expect(urlSegundaPagina.searchParams.get('tamanho')).toBe('5')
-
-    await usuario.selectOptions(
-      screen.getByLabelText('Filtrar por status'),
-      'Resolvido',
-    )
-
+    // Uma linha de cabeçalho e uma linha de chamado.
+    expect(within(tabela()).getAllByRole('row')).toHaveLength(2)
     expect(
-      await screen.findByText('Página 1 de 1'),
-    ).toBeInTheDocument()
-
-    const urlFiltrada = new URL(
-      fetchMock.mock.calls[2][0],
-      'http://localhost',
-    )
-
-    expect(urlFiltrada.searchParams.get('pagina')).toBe('0')
-    expect(urlFiltrada.searchParams.get('status')).toBe('Resolvido')
-    expect(screen.getByLabelText('Filtrar por status')).toHaveValue(
-      'Resolvido',
-    )
-    expect(screen.getAllByRole('listitem')).toHaveLength(1)
-    expect(
-      screen.getByRole('heading', { name: 'Chamado resolvido' }),
+      within(tabela()).getByRole('button', { name: 'Chamado resolvido' }),
     ).toBeInTheDocument()
   })
 
   it('inicia atendimento e passa a oferecer a ação de resolver', async () => {
     const usuario = userEvent.setup()
-    const emAtendimento = {
-      ...chamadoAberto,
-      status: 'Em atendimento',
-    }
-
-    fetchMock
-      .mockResolvedValueOnce(resposta(pagina([chamadoAberto])))
-      .mockResolvedValueOnce(resposta(emAtendimento))
-      .mockResolvedValue(resposta(pagina([emAtendimento])))
+    api.chamados = [{ ...chamadoAberto }]
 
     render(<App />)
 
@@ -342,11 +550,11 @@ describe('Interface de chamados', () => {
       }),
     ).toBeEnabled()
 
-    const item = screen.getByRole('listitem')
+    const linha = within(linhaChamado())
 
-    expect(within(item).getByText('Em atendimento')).toBeInTheDocument()
+    expect(linha.getByText('Em atendimento')).toBeInTheDocument()
     expect(
-      within(item).queryByRole('button', { name: /Iniciar atendimento/ }),
+      linha.queryByRole('button', { name: /Iniciar atendimento/ }),
     ).not.toBeInTheDocument()
 
     expect(
@@ -356,21 +564,12 @@ describe('Interface de chamados', () => {
     ).toBeInTheDocument()
   })
 
-  it('resolve um chamado e remove os botões de alteração', async () => {
+  it('resolve um chamado mantendo os botões de abrir detalhes', async () => {
     const usuario = userEvent.setup()
-    const emAtendimento = {
+    api.chamados = [{
       ...chamadoAberto,
       status: 'Em atendimento',
-    }
-    const resolvido = {
-      ...chamadoAberto,
-      status: 'Resolvido',
-    }
-
-    fetchMock
-      .mockResolvedValueOnce(resposta(pagina([emAtendimento])))
-      .mockResolvedValueOnce(resposta(resolvido))
-      .mockResolvedValue(resposta(pagina([resolvido])))
+    }]
 
     render(<App />)
 
@@ -392,34 +591,34 @@ describe('Interface de chamados', () => {
     )
 
     await waitFor(() => {
-      const item = screen.getByRole('listitem')
-      expect(within(item).getByText('Resolvido')).toBeInTheDocument()
+      expect(
+        within(linhaChamado()).getByText('Resolvido'),
+      ).toBeInTheDocument()
     })
 
+    const linha = within(linhaChamado())
+
     expect(
-      within(screen.getByRole('listitem')).queryByRole('button'),
+      linha.queryByRole('button', { name: /Resolver chamado:/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      linha.queryByRole('button', { name: /Iniciar atendimento:/ }),
     ).not.toBeInTheDocument()
 
+    expect(
+      linha.getByRole('button', { name: 'Abrir chamado #3' }),
+    ).toBeEnabled()
+
+    expect(linha.getByText('Concluído')).toBeInTheDocument()
     expect(
       screen.getByText('Chamado resolvido com sucesso! Solicitação #3.'),
     ).toBeInTheDocument()
   })
 
-  it('mostra o erro da API sem indicar sucesso na mudança de status', async () => {
+  it('mostra o erro sem indicar sucesso na mudança de status', async () => {
     const usuario = userEvent.setup()
-
-    fetchMock
-      .mockResolvedValueOnce(resposta(pagina([chamadoAberto])))
-      .mockResolvedValueOnce(
-        resposta(
-          {
-            status: 409,
-            erro: 'Não é possível iniciar atendimento neste status.',
-            caminho: '/chamados/3/atendimento',
-          },
-          409,
-        ),
-      )
+    api.chamados = [{ ...chamadoAberto }]
+    api.erroStatus = 'Não é possível iniciar atendimento neste status.'
 
     render(<App />)
 
@@ -430,7 +629,7 @@ describe('Interface de chamados', () => {
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Não é possível iniciar atendimento neste status.',
+      api.erroStatus,
     )
 
     expect(
@@ -446,7 +645,214 @@ describe('Interface de chamados', () => {
     ).toBeEnabled()
 
     expect(
-      within(screen.getByRole('listitem')).getByText('Aberto'),
+      within(linhaChamado()).getByText('Aberto'),
     ).toBeInTheDocument()
+  })
+
+  it('abre os detalhes pelo número e pelo título, exibindo as fotos salvas', async () => {
+    const usuario = userEvent.setup()
+    api.chamados = [{ ...chamadoAberto }]
+    api.fotos[3] = [{
+      id: 'foto-salva',
+      nome: 'problema.png',
+      tipo: 'image/png',
+      tamanho: 100,
+    }]
+
+    render(<App />)
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Abrir chamado #3' }),
+    )
+
+    let dialogo = await aguardarDetalhes()
+
+    expect(
+      within(dialogo).getByText(chamadoAberto.descricao),
+    ).toBeInTheDocument()
+
+    expect(
+      within(dialogo).getByRole('link', {
+        name: 'Abrir foto 1 em outra aba',
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/api/chamados/3/fotos/foto-salva',
+    )
+
+    await fecharDetalhes(usuario, dialogo)
+
+    await usuario.click(
+      within(tabela()).getByRole('button', {
+        name: chamadoAberto.titulo,
+      }),
+    )
+
+    dialogo = await aguardarDetalhes()
+
+    expect(
+      within(dialogo).getByRole('img', {
+        name: 'Foto 1 do chamado #3',
+      }),
+    ).toBeInTheDocument()
+
+    expect(chamadasPara('/api/chamados/3', 'GET')).toHaveLength(2)
+    expect(chamadasPara('/api/chamados/3/fotos', 'GET')).toHaveLength(2)
+  })
+
+  it('envia as fotos selecionadas no cadastro com CSRF e exibe a galeria', async () => {
+    const usuario = userEvent.setup()
+
+    render(<App />)
+    await screen.findByText('Nenhum chamado encontrado nesta página.')
+
+    const regiao = await abrirCadastro(usuario)
+    await preencherCadastro(usuario, regiao)
+
+    await usuario.upload(
+      within(regiao).getByLabelText(
+        'Selecionar fotos para o novo chamado',
+      ),
+      arquivoFoto(),
+    )
+
+    expect(
+      await within(regiao).findByRole('img', {
+        name: 'Prévia de problema.png',
+      }),
+    ).toBeInTheDocument()
+
+    await cadastrar(usuario, regiao)
+
+    const dialogo = await aguardarDetalhes()
+    const uploads = chamadasPara('/api/chamados/3/fotos', 'POST')
+
+    expect(uploads).toHaveLength(1)
+
+    const opcoes = uploads[0][1]
+
+    expect(opcoes.credentials).toBe('same-origin')
+    expect(opcoes.headers).toEqual({
+      'X-CSRF-TOKEN': 'csrf-teste',
+    })
+    expect(opcoes.body).toBeInstanceOf(FormData)
+
+    const enviados = opcoes.body.getAll('fotos')
+
+    expect(enviados).toHaveLength(1)
+    expect(enviados[0].name).toBe('problema.png')
+    expect(enviados[0].type).toBe('image/png')
+    expect(enviados[0].size).toBeGreaterThan(0)
+
+    expect(
+      within(dialogo).getByRole('img', {
+        name: 'Foto 1 do chamado #3',
+      }),
+    ).toHaveAttribute('src', '/api/chamados/3/fotos/foto-1')
+
+    expect(chamadasPara('/api/chamados', 'POST')).toHaveLength(1)
+
+    await fecharDetalhes(usuario, dialogo)
+
+    expect(
+      within(regiao).queryByRole('img', {
+        name: 'Prévia de problema.png',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('não envia uma foto removida antes do cadastro', async () => {
+    const usuario = userEvent.setup()
+
+    render(<App />)
+    await screen.findByText('Nenhum chamado encontrado nesta página.')
+
+    const regiao = await abrirCadastro(usuario)
+    await preencherCadastro(usuario, regiao)
+
+    await usuario.upload(
+      within(regiao).getByLabelText(
+        'Selecionar fotos para o novo chamado',
+      ),
+      arquivoFoto(),
+    )
+
+    await usuario.click(
+      within(regiao).getByRole('button', {
+        name: 'Remover seleção de problema.png',
+      }),
+    )
+
+    expect(
+      within(regiao).queryByRole('img', {
+        name: 'Prévia de problema.png',
+      }),
+    ).not.toBeInTheDocument()
+
+    await cadastrar(usuario, regiao)
+    const dialogo = await aguardarDetalhes()
+
+    expect(chamadasPara('/api/chamados/3/fotos', 'POST')).toHaveLength(0)
+    expect(
+      within(dialogo).getByText('Nenhuma foto adicionada.'),
+    ).toBeInTheDocument()
+  })
+
+  it('preserva o chamado se as fotos falham e permite enviá-las pelos detalhes', async () => {
+    const usuario = userEvent.setup()
+    api.erroFotos = 'Não foi possível salvar as fotos.'
+
+    render(<App />)
+    await screen.findByText('Nenhum chamado encontrado nesta página.')
+
+    const regiao = await abrirCadastro(usuario)
+    await preencherCadastro(usuario, regiao)
+
+    await usuario.upload(
+      within(regiao).getByLabelText(
+        'Selecionar fotos para o novo chamado',
+      ),
+      arquivoFoto(),
+    )
+
+    await cadastrar(usuario, regiao)
+    const dialogo = await aguardarDetalhes()
+
+    expect(within(dialogo).getByRole('alert')).toHaveTextContent(
+      'O chamado foi criado, mas não foi possível confirmar o envio das fotos.',
+    )
+    expect(
+      within(dialogo).getByText('Nenhuma foto adicionada.'),
+    ).toBeInTheDocument()
+
+    expect(api.chamados).toHaveLength(1)
+    expect(chamadasPara('/api/chamados', 'POST')).toHaveLength(1)
+
+    // O serviço volta a responder. O usuário envia a foto
+    // no chamado existente, sem repetir seu cadastro.
+    api.erroFotos = null
+
+    await usuario.upload(
+      within(dialogo).getByLabelText('Selecionar fotos do chamado'),
+      arquivoFoto(),
+    )
+
+    await usuario.click(
+      within(dialogo).getByRole('button', { name: 'Enviar fotos' }),
+    )
+
+    expect(
+      await within(dialogo).findByText('Fotos adicionadas com sucesso.'),
+    ).toBeInTheDocument()
+
+    expect(
+      within(dialogo).getByRole('img', {
+        name: 'Foto 1 do chamado #3',
+      }),
+    ).toBeInTheDocument()
+
+    expect(api.chamados).toHaveLength(1)
+    expect(chamadasPara('/api/chamados', 'POST')).toHaveLength(1)
+    expect(chamadasPara('/api/chamados/3/fotos', 'POST')).toHaveLength(2)
   })
 })

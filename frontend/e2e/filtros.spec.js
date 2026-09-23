@@ -1,11 +1,55 @@
 import { randomUUID } from 'node:crypto'
 import { test, expect, obterCabecalhosCsrf } from './autenticacao'
 
-async function criarChamado(request, titulo, prioridade, resolvido) {
-  const headers = await obterCabecalhosCsrf(request)
+const nomesStatus = {
+  '': 'Todos',
+  Aberto: 'Abertos',
+  'Em atendimento': 'Em atendimento',
+  Resolvido: 'Resolvidos',
+}
 
+function botaoStatus(page, status) {
+  return page
+    .getByRole('group', { name: 'Filtrar por status', exact: true })
+    .getByRole('button', {
+      name: nomesStatus[status],
+      exact: true,
+    })
+}
+
+async function aguardarLista(page) {
+  await expect(
+    page.getByRole('button', {
+      name: 'Atualizar lista',
+      exact: true,
+    }),
+  ).toBeEnabled()
+
+  for (const status of Object.keys(nomesStatus)) {
+    await expect(botaoStatus(page, status)).toBeEnabled()
+  }
+
+  await expect(
+    page.getByLabel('Filtrar por prioridade', { exact: true }),
+  ).toBeEnabled()
+}
+
+async function conferirFiltros(page, status, prioridade) {
+  for (const valor of Object.keys(nomesStatus)) {
+    await expect(botaoStatus(page, valor)).toHaveAttribute(
+      'aria-pressed',
+      String(valor === status),
+    )
+  }
+
+  await expect(
+    page.getByLabel('Filtrar por prioridade', { exact: true }),
+  ).toHaveValue(prioridade)
+}
+
+async function criarChamado(request, titulo, prioridade, resolvido) {
   const resposta = await request.post('/api/chamados', {
-    headers,
+    headers: await obterCabecalhosCsrf(request),
     data: {
       titulo,
       descricao: 'Chamado temporário para testar filtros combinados.',
@@ -40,7 +84,13 @@ async function criarChamado(request, titulo, prioridade, resolvido) {
   return titulo
 }
 
-async function consultar(page, acao, status, prioridade, primeiraPagina) {
+async function consultar(
+  page,
+  acao,
+  status,
+  prioridade,
+  primeiraPagina,
+) {
   const respostaPendente = page.waitForResponse((resposta) => {
     const url = new URL(resposta.url())
 
@@ -65,38 +115,59 @@ async function consultar(page, acao, status, prioridade, primeiraPagina) {
   }
 
   const dados = await resposta.json()
-  const lista = page.getByRole('region', { name: 'Solicitações' })
+  const lista = page.getByRole('region', {
+    name: 'Solicitações',
+    exact: true,
+  })
 
-  // Aguarda a interface apresentar a resposta desta consulta.
-  await expect(
-    lista.getByRole('heading', { level: 3 }),
-  ).toHaveText(dados.chamados.map((chamado) => chamado.titulo))
+  // Aguarda os títulos e a paginação da resposta recebida.
+  if (dados.chamados.length > 0) {
+    const tabela = lista.getByRole('table', {
+      name: 'Chamados da página atual',
+      exact: true,
+    })
+
+    await expect(
+      tabela.getByRole('heading', { level: 3 }),
+    ).toHaveText(dados.chamados.map((chamado) => chamado.titulo))
+  } else {
+    await expect(
+      lista.getByText('Nenhum chamado encontrado nesta página.', {
+        exact: true,
+      }),
+    ).toBeVisible()
+
+    await expect(lista.getByRole('table')).toHaveCount(0)
+  }
+
+  const textoPaginacao = dados.totalPaginas === 0
+    ? 'Nenhuma página'
+    : `Página ${dados.pagina + 1} de ${dados.totalPaginas}`
 
   await expect(
-    page.getByLabel('Filtrar por status', { exact: true }),
-  ).toBeEnabled()
+    lista.getByText(textoPaginacao, { exact: true }),
+  ).toBeVisible()
 
-  await expect(
-    page.getByLabel('Filtrar por prioridade', { exact: true }),
-  ).toBeEnabled()
+  await aguardarLista(page)
+  await conferirFiltros(page, status, prioridade)
 }
 
 async function alterarFiltro(page, nome, valor, status, prioridade) {
   await consultar(
     page,
-    () => page.getByLabel(nome, { exact: true }).selectOption(valor),
+    () => {
+      if (nome === 'Filtrar por status') {
+        return botaoStatus(page, valor).click()
+      }
+
+      return page
+        .getByLabel(nome, { exact: true })
+        .selectOption(valor)
+    },
     status,
     prioridade,
     true,
   )
-
-  await expect(
-    page.getByLabel('Filtrar por status', { exact: true }),
-  ).toHaveValue(status)
-
-  await expect(
-    page.getByLabel('Filtrar por prioridade', { exact: true }),
-  ).toHaveValue(prioridade)
 }
 
 async function conferirResultados(
@@ -106,32 +177,47 @@ async function conferirResultados(
   status,
   prioridade,
 ) {
-  const lista = page.getByRole('region', { name: 'Solicitações' })
+  const lista = page.getByRole('region', {
+    name: 'Solicitações',
+    exact: true,
+  })
+
   const encontrados = []
 
-  // Percorre todas as páginas para não confundir ausência com paginação.
+  // Percorre todas as páginas, incluindo chamados de outras execuções.
   while (true) {
-    const itens = lista.getByRole('listitem')
-    const quantidade = await itens.count()
+    await aguardarLista(page)
+
+    const tabela = lista.getByRole('table', {
+      name: 'Chamados da página atual',
+      exact: true,
+    })
+
+    // O cabeçalho da tabela não entra na contagem.
+    const linhas = tabela.locator('tbody').getByRole('row')
+    const quantidade = await linhas.count()
 
     for (let indice = 0; indice < quantidade; indice += 1) {
-      const item = itens.nth(indice)
+      const linha = linhas.nth(indice)
 
       if (status) {
         await expect(
-          item.getByText(status, { exact: true }),
+          linha.getByText(status, { exact: true }),
         ).toBeVisible()
       }
 
       if (prioridade) {
         await expect(
-          item.locator('.prioridade-texto'),
-        ).toHaveText(prioridade)
+          linha.getByRole('cell', {
+            name: prioridade,
+            exact: true,
+          }),
+        ).toBeVisible()
       }
 
-      const titulo = await item.getByRole('heading', {
-        level: 3,
-      }).innerText()
+      const titulo = await linha
+        .getByRole('heading', { level: 3 })
+        .innerText()
 
       if (titulo.startsWith(prefixo)) {
         encontrados.push(titulo)
@@ -156,14 +242,14 @@ async function conferirResultados(
     )
   }
 
-  // Compara apenas os chamados desta execução, sem depender de banco vazio.
+  // Compara somente os chamados criados por este teste.
   expect(encontrados.sort()).toEqual([...titulosEsperados].sort())
 }
 
 test('combina status e prioridade e remove cada filtro preservando o outro', async ({
   page,
 }) => {
-  // Compartilha os cookies da sessão criada pelo login no navegador.
+  // Usa os cookies da sessão autenticada no navegador.
   const request = page.request
   const prefixo = `Filtros E2E ${randomUUID()}`
 
@@ -196,10 +282,8 @@ test('combina status e prioridade e remove cada filtro preservando o outro', asy
   )
 
   await page.goto('/')
-
-  await expect(
-    page.getByLabel('Filtrar por status', { exact: true }),
-  ).toBeEnabled()
+  await aguardarLista(page)
+  await conferirFiltros(page, '', '')
 
   await alterarFiltro(
     page,
@@ -225,7 +309,7 @@ test('combina status e prioridade e remove cada filtro preservando o outro', asy
     'Alta',
   )
 
-  // Remove prioridade, mantendo somente chamados abertos.
+  // Remove a prioridade e mantém o status Aberto.
   await alterarFiltro(
     page,
     'Filtrar por prioridade',
@@ -242,7 +326,7 @@ test('combina status e prioridade e remove cada filtro preservando o outro', asy
     '',
   )
 
-  // Reaplica prioridade para testar a remoção do outro filtro.
+  // Reaplica Alta antes de remover o filtro de status.
   await alterarFiltro(
     page,
     'Filtrar por prioridade',

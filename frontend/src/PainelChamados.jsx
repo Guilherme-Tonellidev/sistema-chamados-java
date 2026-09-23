@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import FormularioChamado from './components/FormularioChamado'
+import DetalhesChamado from './components/DetalhesChamado'
 import ListaChamados from './components/ListaChamados'
 import {
   listarChamados,
   criarChamado,
   iniciarAtendimento,
   resolverChamado,
+  enviarFotosChamado,
 } from './services/chamadosApi'
 import './App.css'
 
@@ -32,8 +34,12 @@ function lerTemaSalvo() {
   }
 }
 
-export default function PainelChamados() {
+export default function PainelChamados({ usuario, aoSair }) {
+  const [cadastroAberto, setCadastroAberto] = useState(false)
+  const [fotosCadastro, setFotosCadastro] = useState([])
+  const [avisoFotosCadastro, setAvisoFotosCadastro] = useState(null)
   const [tema, setTema] = useState(lerTemaSalvo)
+  const [chamadoSelecionado, setChamadoSelecionado] = useState(null)
 
   const [filtro, setFiltro] = useState('')
   const [filtroPrioridade, setFiltroPrioridade] = useState('')
@@ -181,28 +187,66 @@ export default function PainelChamados() {
     setSalvando(true)
 
     try {
-      const resultado = await criarChamado({
-        titulo: tituloLimpo,
-        descricao: descricaoLimpa,
-        prioridade,
-      })
+      let resultado
+
+      try {
+        resultado = await criarChamado({
+          titulo: tituloLimpo,
+          descricao: descricaoLimpa,
+          prioridade,
+        })
+      } catch (error) {
+        setErroCadastro(
+          error instanceof TypeError
+            ? 'Não foi possível confirmar o cadastro por uma falha de conexão. Atualize a lista para verificar se o chamado foi criado antes de enviar novamente.'
+            : error.message,
+        )
+        return
+      }
+
+      // O chamado já foi criado. Uma falha posterior nas fotos
+      // não deve fazer o usuário cadastrar o chamado novamente.
+      const fotosParaEnviar = fotosCadastro
 
       setTitulo('')
       setDescricao('')
       setPrioridade('Normal')
+      setFotosCadastro([])
+      setAvisoFotosCadastro(null)
+
       setSucessoCadastro(
         resultado?.id != null
           ? `Chamado #${resultado.id} cadastrado com sucesso! Status inicial: Aberto.`
           : 'Chamado cadastrado com sucesso! Status inicial: Aberto.',
       )
 
+      if (fotosParaEnviar.length > 0) {
+        if (resultado?.id == null) {
+          setErroCadastro(
+            'O chamado foi cadastrado, mas a API não retornou seu número. Localize-o na lista e adicione as fotos pelos detalhes. Não repita o cadastro.',
+          )
+        } else {
+          try {
+            await enviarFotosChamado(resultado.id, fotosParaEnviar)
+          } catch (error) {
+            const motivo = error instanceof TypeError
+              ? 'Houve uma falha de conexão durante o envio.'
+              : error.message
+
+            setAvisoFotosCadastro({
+              id: resultado.id,
+              mensagem:
+                `O chamado foi criado, mas não foi possível confirmar o envio das fotos. ${motivo} Confira a galeria abaixo antes de selecionar e enviar novamente apenas as fotos que faltam. Não é necessário cadastrar outro chamado.`,
+            })
+          }
+        }
+      }
+
       atualizar()
-    } catch (error) {
-      setErroCadastro(
-        error instanceof TypeError
-          ? 'Não foi possível confirmar o cadastro por uma falha de conexão. Atualize a lista para verificar se o chamado foi criado antes de enviar novamente.'
-          : error.message,
-      )
+
+      if (resultado?.id != null) {
+        setChamadoSelecionado(resultado.id)
+      }
     } finally {
       operacaoEmAndamento.current = false
       setSalvando(false)
@@ -240,17 +284,16 @@ export default function PainelChamados() {
   }
 
   return (
-    <main className="painel">
-      <header className="cabecalho">
-        <div>
-          <p className="marca">CENTRAL DE SUPORTE</p>
-          <h1>Chamados de TI</h1>
-          <p className="subtitulo">
-            Acompanhe as solicitações e o andamento dos atendimentos.
-          </p>
+    <main className="painel painel-elodesk">
+      <header className="elodesk-topo">
+        <div className="elodesk-titulo">
+          <img src="/elodesk.svg" alt="" width="36" height="36" />
+          <h1>EloDesk</h1>
+          <span className="elodesk-divisor" aria-hidden="true" />
+          <span className="elodesk-secao">Chamados</span>
         </div>
 
-        <div className="acoes-cabecalho">
+        <div className="elodesk-conta">
           <button
             type="button"
             className="botao-tema"
@@ -259,57 +302,100 @@ export default function PainelChamados() {
               temaEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'
             }
           >
-            <span className="icone-tema" aria-hidden="true">
-              {temaEscuro ? '☀' : '☾'}
-            </span>
+            <span aria-hidden="true">{temaEscuro ? '☀' : '☾'}</span>
             {temaEscuro ? 'Tema claro' : 'Tema escuro'}
+          </button>
+
+          {usuario && (
+            <span className="elodesk-usuario">{usuario.nome}</span>
+          )}
+
+          {aoSair && (
+            <button type="button" onClick={aoSair}>
+              Sair
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="elodesk-area">
+        <div className="elodesk-ferramentas">
+          <button
+            type="button"
+            className="botao-primario"
+            onClick={() => setCadastroAberto((atual) => !atual)}
+            aria-expanded={cadastroAberto}
+            aria-controls="elodesk-cadastro"
+            disabled={operacaoPendente}
+          >
+            {cadastroAberto ? 'Fechar cadastro' : '+ Criar chamado'}
           </button>
 
           <button
             type="button"
-            className="botao-primario"
             onClick={atualizar}
             disabled={carregando || operacaoPendente}
           >
             {carregando ? 'Carregando…' : 'Atualizar lista'}
           </button>
         </div>
-      </header>
 
-      <FormularioChamado
-        titulo={titulo}
-        descricao={descricao}
-        prioridade={prioridade}
-        salvando={salvando}
-        bloqueado={operacaoPendente}
-        erro={erroCadastro}
-        sucesso={sucessoCadastro}
-        aoAlterarTitulo={setTitulo}
-        aoAlterarDescricao={setDescricao}
-        aoAlterarPrioridade={setPrioridade}
-        aoCadastrar={cadastrarChamado}
-      />
+        <div id="elodesk-cadastro" hidden={!cadastroAberto}>
+          {cadastroAberto && (
+            <FormularioChamado
+              titulo={titulo}
+              descricao={descricao}
+              prioridade={prioridade}
+              salvando={salvando}
+              bloqueado={operacaoPendente}
+              erro={erroCadastro}
+              sucesso={sucessoCadastro}
+              fotos={fotosCadastro}
+              aoAlterarFotos={setFotosCadastro}
+              aoAlterarTitulo={setTitulo}
+              aoAlterarDescricao={setDescricao}
+              aoAlterarPrioridade={setPrioridade}
+              aoCadastrar={cadastrarChamado}
+            />
+          )}
+        </div>
 
-      <ListaChamados
-        dados={dados}
-        filtro={filtro}
-        filtroPrioridade={filtroPrioridade}
-        carregando={carregando}
-        erro={erro}
-        erroStatus={erroStatus}
-        sucessoStatus={sucessoStatus}
-        idEmAlteracao={idEmAlteracao}
-        bloqueado={operacaoPendente}
-        aoAlterarFiltro={alterarFiltro}
-        aoAlterarFiltroPrioridade={alterarFiltroPrioridade}
-        aoAtualizar={atualizar}
-        aoAlterarStatus={alterarStatus}
-        aoMudarPagina={mudarPagina}
-      />
-
-      <footer className="rodape">
-        Sistema de Chamados · Guilherme Tonelli
-      </footer>
+        <ListaChamados
+          aoAbrirChamado={setChamadoSelecionado}
+          dados={dados}
+          filtro={filtro}
+          filtroPrioridade={filtroPrioridade}
+          carregando={carregando}
+          erro={erro}
+          erroStatus={erroStatus}
+          sucessoStatus={sucessoStatus}
+          idEmAlteracao={idEmAlteracao}
+          bloqueado={operacaoPendente}
+          aoAlterarFiltro={alterarFiltro}
+          aoAlterarFiltroPrioridade={alterarFiltroPrioridade}
+          aoAtualizar={atualizar}
+          aoAlterarStatus={alterarStatus}
+          aoMudarPagina={mudarPagina}
+        />
+        {chamadoSelecionado !== null && (
+           <DetalhesChamado
+            key={chamadoSelecionado}
+            chamadoId={chamadoSelecionado}
+            avisoInicial={
+              avisoFotosCadastro?.id === chamadoSelecionado
+                ? avisoFotosCadastro.mensagem
+                : ''
+            }
+            aoFechar={() => {
+              setChamadoSelecionado(null)
+              setAvisoFotosCadastro(null)
+            }}
+        />
+      )}
+        <footer className="rodape">
+          EloDesk · Seu suporte, mais próximo.
+        </footer>
+      </div>
     </main>
   )
 }

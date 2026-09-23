@@ -1,48 +1,61 @@
-# Sistema de Chamados de TI
+# EloDesk — Sistema de Chamados de TI
 
 [![Verificações Java e Front-end](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions/workflows/testes.yml/badge.svg)](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions/workflows/testes.yml)
 
+**Seu suporte, mais próximo.**
+
 Aplicação full stack para gerenciamento de chamados de suporte técnico, com API REST em Java e Spring Boot, interface React e persistência em PostgreSQL.
 
-Projeto de portfólio desenvolvido para praticar integração entre front-end e back-end, regras de negócio, persistência, testes automatizados e integração contínua.
+Projeto de portfólio desenvolvido para praticar integração entre front-end e back-end, regras de negócio, autenticação, persistência, testes automatizados e integração contínua.
 
 ## Funcionalidades
 
 ### Interface web
 
+- Entrar com e-mail e senha.
+- Mostrar ou ocultar a senha no formulário de login.
+- Recuperar a sessão ao recarregar a página.
+- Encerrar a sessão pelo botão Sair.
 - Cadastrar chamados com título, descrição e prioridade.
-- Listar chamados com paginação de 5 itens.
+- Selecionar fotos durante o cadastro, com prévia e remoção antes do envio.
+- Listar chamados em uma tabela com paginação de 5 itens.
+- Abrir os detalhes pelo número ou pelo título do chamado.
+- Consultar descrição, prioridade, status, datas e fotos nos detalhes.
+- Adicionar fotos a um chamado existente.
+- Abrir uma foto salva em outra aba.
 - Filtrar por status e prioridade, separadamente ou em conjunto.
 - Retornar à primeira página ao alterar qualquer filtro.
 - Iniciar atendimento e resolver chamados.
-- Exibir a data e a hora de abertura.
-- Exibir abaixo do status a data e a hora de início do atendimento ou de resolução.
-- Destacar prioridades com cores, letras maiúsculas e negrito.
-- Alternar entre tema claro e tema escuro em azul.
+- Exibir a data de abertura e as datas das transições.
+- Identificar prioridades e status por texto e cores.
+- Alternar o painel entre os temas claro e escuro.
 - Salvar a preferência de tema no navegador quando o armazenamento estiver disponível.
 - Atualizar a lista manualmente.
 - Apresentar estados de carregamento, erro e lista vazia.
-- Exibir mensagens de sucesso e erros retornados pela API.
-- Impedir o cadastro de campos vazios ou contendo apenas espaços.
+- Impedir cadastros com título ou descrição contendo apenas espaços.
 - Bloquear novos envios enquanto uma operação estiver em andamento.
-- Adaptar a disposição dos elementos para telas menores.
+- Adaptar o layout para telas menores, com rolagem horizontal da tabela quando necessário.
+
+A tela de login possui apresentação escura própria. A preferência de tema é aplicada ao painel de chamados.
 
 ### API REST
 
 - Cadastrar, listar e buscar chamados pelo ID.
-- Filtrar por status e prioridade, inclusive de forma combinada.
+- Filtrar por status e prioridade.
 - Listar com paginação e ordenação por ID crescente.
 - Validar campos obrigatórios, prioridades e transições de status.
-- Registrar os momentos de abertura, início do atendimento e resolução.
+- Registrar abertura, início do atendimento e resolução.
+- Receber, validar, armazenar e disponibilizar fotos dos chamados.
+- Cadastrar usuários com e-mail normalizado e único.
+- Armazenar somente o hash da senha, utilizando BCrypt.
+- Autenticar usuários com sessão mantida por cookie.
+- Proteger operações de escrita com CSRF.
+- Exigir autenticação nos endpoints de chamados e fotos.
 - Retornar erros padronizados.
-- Persistir os chamados no PostgreSQL.
+- Persistir os dados no PostgreSQL.
 - Gerenciar a estrutura do banco com migrações Flyway.
-- Cadastrar usuários com nome, e-mail e senha.
-- Normalizar o e-mail e rejeitar cadastros duplicados.
-- Gerar o hash da senha com BCrypt.
-- Retornar os dados do usuário cadastrado sem expor senha ou hash.
 
-O cadastro de usuários está disponível somente pela API. Login, autorização e telas de acesso ainda estão em desenvolvimento. Os endpoints de chamados ainda não exigem autenticação.
+O cadastro de usuários está disponível somente pela API. Ainda não existe tela de cadastro.
 
 ## Regras de negócio
 
@@ -57,19 +70,21 @@ O cadastro de usuários está disponível somente pela API. Login, autorização
 
 **Fluxo: Aberto → Em atendimento → Resolvido**
 
-A interface apresenta a ação correspondente ao status atual. A API também valida as transições quando a requisição é feita diretamente.
+A tabela apresenta a ação correspondente ao status atual. A API também valida as transições quando a requisição é feita diretamente.
+
+Chamados resolvidos continuam disponíveis para consulta.
 
 ### Prioridade
 
-| Prioridade | Exibição na interface |
-|---|---|
-| Baixa | **BAIXA**, em verde |
-| Normal | **NORMAL**, em amarelo/dourado |
-| Alta | **ALTA**, em vermelho |
+Valores aceitos:
+
+- `Baixa`
+- `Normal`
+- `Alta`
 
 A prioridade padrão é `Normal` quando não é informada no cadastro. Valores inválidos são rejeitados pela API.
 
-As cores são adaptadas aos temas claro e escuro. O texto identifica a prioridade independentemente da cor.
+A interface apresenta cada prioridade com texto e cor, sem depender exclusivamente da cor para identificá-la.
 
 ### Datas e horários
 
@@ -77,38 +92,64 @@ As cores são adaptadas aos temas claro e escuro. O texto identifica a prioridad
 - `dataInicioAtendimento`: registrada ao iniciar o atendimento.
 - `dataResolucao`: registrada ao resolver o chamado.
 
-A data de abertura permanece abaixo do título.
+A tabela possui uma coluna de abertura. Durante o atendimento, a data de início aparece abaixo do status. Após a resolução, esse espaço apresenta a data de resolução.
 
-Durante o atendimento, a interface mostra a data e a hora de início abaixo do status `Em atendimento`. Após a resolução, esse espaço passa a mostrar a data e a hora da resolução.
+Os detalhes permitem consultar as datas de abertura, início do atendimento e resolução.
 
-A data de início do atendimento continua armazenada no banco, mesmo quando deixa de aparecer na interface.
+Os horários são apresentados no formato brasileiro, utilizando o fuso horário do navegador. Datas ainda não registradas recebem uma indicação na interface.
 
-Os horários são apresentados no formato brasileiro, usando o fuso horário do navegador. Registros antigos sem uma determinada data recebem uma indicação de que ela não foi registrada.
+### Fotos
+
+- O envio de fotos é opcional.
+- Cada chamado aceita até 5 fotos no total.
+- Os formatos aceitos são JPEG e PNG.
+- Cada arquivo pode ter até 5 MB.
+- Cada imagem pode ter até 12 milhões de pixels.
+- A API verifica o conteúdo da imagem, não apenas sua extensão.
+- As imagens são reprocessadas antes do armazenamento.
+- O conteúdo e os metadados das fotos são armazenados no banco.
+- A consulta e o envio exigem autenticação.
+- O envio também exige um token CSRF válido.
+
+No cadastro pela interface, o chamado é criado primeiro e as fotos são enviadas em uma segunda requisição.
+
+Se o chamado for criado e o envio das fotos falhar, o chamado permanece salvo. A interface orienta a conferir a galeria e enviar somente as fotos que faltam pelos detalhes, sem cadastrar outro chamado.
+
+Não existe funcionalidade de exclusão de fotos já salvas. A remoção disponível no formulário se aplica aos arquivos selecionados antes do envio.
 
 ### Cadastro de usuários
 
-- Nome, e-mail e senha são obrigatórios e não podem conter apenas espaços.
+- Nome, e-mail e senha são obrigatórios.
 - O nome tem até 100 caracteres, após remover espaços nas extremidades.
 - O e-mail tem até 254 caracteres e passa por validação de formato.
 - O e-mail é salvo em minúsculas e sem espaços nas extremidades.
 - Cada e-mail normalizado pode pertencer a apenas um usuário.
 - A senha deve ter pelo menos 15 caracteres.
 - A senha deve ocupar no máximo 72 bytes em UTF-8, respeitando o limite do BCrypt.
-- Caracteres acentuados e outros caracteres Unicode podem ocupar mais de um byte.
-- A senha é preservada exatamente como recebida, inclusive os espaços nas extremidades.
+- Caracteres Unicode podem ocupar mais de um byte.
+- A senha é preservada como recebida, inclusive os espaços nas extremidades.
 - Novos usuários são criados com `ativo` igual a `true`.
+- Novos usuários recebem o perfil `SOLICITANTE`.
 - Somente o hash da senha é armazenado.
 - A resposta do cadastro não contém senha nem hash.
 
 A validação do formato do e-mail não verifica a existência da caixa postal nem confirma sua propriedade.
+
+### Perfis e limites de acesso
+
+O banco possui os perfis `SOLICITANTE` e `ATENDENTE`. O cadastro público utiliza `SOLICITANTE`.
+
+A persistência dos perfis está implementada, mas as regras de autorização por perfil ainda não estão.
+
+Atualmente, qualquer usuário autenticado pode consultar e operar todos os chamados e suas fotos. Os chamados ainda não possuem vínculo com um proprietário.
 
 ## Tecnologias
 
 | Área | Tecnologias |
 |---|---|
 | Back-end | Java 21, Spring Boot, Spring Web MVC |
-| Persistência | Spring Data JPA, PostgreSQL 17, Flyway |
-| Hash de senhas | Spring Security Crypto e BCrypt |
+| Persistência | Spring Data JPA, Spring JDBC, PostgreSQL 17, Flyway |
+| Autenticação e segurança | Spring Security, sessão, CSRF e BCrypt |
 | Front-end | React 19, JavaScript, Vite 8, HTML e CSS |
 | Testes da API e persistência | JUnit Jupiter, MockMvc e H2 |
 | Testes da interface | Vitest, React Testing Library, jest-dom, user-event e jsdom |
@@ -116,70 +157,70 @@ A validação do formato do e-mail não verifica a existência da caixa postal n
 | Análise de código | Oxlint |
 | Ferramentas | Maven, Node.js 24, npm, Git e GitHub Actions |
 
-O módulo Spring Security Crypto é utilizado para gerar e verificar hashes. A proteção HTTP dos endpoints ainda não foi implementada.
-
 ## Organização do projeto
+
+Os caminhos abaixo são relativos à raiz do repositório.
 
 | Caminho | Conteúdo |
 |---|---|
 | `src/main/java/br/com/guilhermetonelli/chamados` | Código Java principal |
 | `src/main/resources` | Configurações da API |
 | `src/main/resources/db/migration` | Migrações Flyway |
-| `src/main/resources/db/migration/V5__criar_tabela_usuarios.sql` | Criação da tabela de usuários |
 | `src/test/java` | Testes automatizados do back-end |
-| `src/test/java/br/com/guilhermetonelli/chamados/UsuarioRepositoryTest.java` | Testes de persistência, normalização e busca de usuários |
-| `src/test/java/br/com/guilhermetonelli/chamados/ConfiguracaoSenhasTest.java` | Testes da configuração de hash e verificação de senhas |
-| `src/test/java/br/com/guilhermetonelli/chamados/UsuarioCadastroTest.java` | Testes do cadastro de usuários pela API |
 | `src/test/resources` | Configurações dos testes Java |
-| `src/test/resources/application-e2e.properties` | Configuração da API para testes de ponta a ponta com H2 |
-| `frontend/src/App.jsx` | Estado da aplicação, tema, filtros e coordenação das operações |
-| `frontend/src/components/FormularioChamado.jsx` | Formulário de cadastro de chamados |
-| `frontend/src/components/ListaChamados.jsx` | Filtros e apresentação dos chamados |
+| `src/test/resources/application-e2e.properties` | Configuração da API de testes com H2 |
+| `frontend/src/App.jsx` | Consulta da sessão e fluxo de autenticação |
+| `frontend/src/PainelChamados.jsx` | Tema, filtros e coordenação das operações |
+| `frontend/src/components/FormularioLogin.jsx` | Formulário de login |
+| `frontend/src/components/FormularioChamado.jsx` | Cadastro e seleção de fotos |
+| `frontend/src/components/ListaChamados.jsx` | Filtros e tabela de chamados |
+| `frontend/src/components/DetalhesChamado.jsx` | Detalhes, galeria e envio de fotos |
 | `frontend/src/components/StatusChamado.jsx` | Status e data correspondente |
 | `frontend/src/components/Paginacao.jsx` | Navegação entre páginas |
-| `frontend/src/services/chamadosApi.js` | Requisições HTTP para a API de chamados |
+| `frontend/src/services/autenticacaoApi.js` | Sessão, login, logout e CSRF |
+| `frontend/src/services/chamadosApi.js` | Requisições de chamados e fotos |
 | `frontend/src/App.css` | Estilos da interface |
-| `frontend/src/index.css` | Estilos globais e temas |
-| `frontend/src/App.test.jsx` | Testes dos fluxos da interface |
-| `frontend/src/App.prioridade.test.jsx` | Testes de prioridade no cadastro |
-| `frontend/src/App.filtros.test.jsx` | Testes dos filtros combinados e da paginação |
-| `frontend/src/App.tema.test.jsx` | Testes da alternância, persistência e falhas de armazenamento do tema |
-| `frontend/src/test/setup.js` | Preparação e limpeza do ambiente de testes |
+| `frontend/src/index.css` | Estilos globais |
+| `frontend/public/elodesk.svg` | Identidade visual do EloDesk |
+| `frontend/src/test/setup.js` | Preparação e limpeza dos testes da interface |
 | `frontend/vite.config.js` | Configuração do Vite, proxy e Vitest |
-| `frontend/playwright.config.js` | Configuração do Playwright e da interface de testes |
-| `frontend/e2e/cadastro.spec.js` | Teste do fluxo completo de cadastro, atendimento e resolução, com consulta após recarregar |
-| `frontend/e2e/filtros.spec.js` | Teste dos filtros combinados e da remoção de cada filtro preservando o outro |
-| `frontend/e2e/.gitignore` | Exclusão dos resultados locais do Playwright |
-| `.github/workflows/testes.yml` | Verificações automáticas do Java, front-end e testes de ponta a ponta |
+| `frontend/playwright.config.js` | Configuração dos testes de navegador |
+| `frontend/e2e/autenticacao.js` | Preparação de usuários e sessões dos testes |
+| `frontend/e2e/cadastro.spec.js` | Cadastro com foto, detalhes e transições |
+| `frontend/e2e/filtros.spec.js` | Filtros combinados e paginação |
+| `frontend/e2e/login.spec.js` | Login, sessão e logout |
+| `.github/workflows/testes.yml` | Integração contínua |
 
 ### Principais componentes Java
 
 | Componente | Responsabilidade |
 |---|---|
-| `ChamadosApplication` | Inicialização da aplicação Spring Boot |
-| `Chamado` | Entidade, prioridade, datas e regras de mudança de status |
-| `ChamadoRepository` | Acesso aos dados e consultas com filtros |
-| `ChamadoService` | Operações de negócio, validações e transações dos chamados |
-| `ChamadoController` | Endpoints HTTP de chamados |
-| `CriarChamadoRequest` | Dados recebidos no cadastro de chamados |
-| `PaginaChamadosResposta` | Estrutura da resposta paginada |
-| `ChamadoNaoEncontradoException` | Exceção para chamado inexistente |
-| `ErroResposta` | Estrutura padronizada dos erros |
+| `ChamadosApplication` | Inicialização da aplicação |
+| `Chamado` | Entidade, prioridade, datas e transições de status |
+| `ChamadoRepository` | Persistência e consultas de chamados |
+| `ChamadoService` | Validações e operações de negócio |
+| `ChamadoController` | Endpoints de chamados |
+| `CriarChamadoRequest` | Dados recebidos no cadastro |
+| `PaginaChamadosResposta` | Resposta paginada |
+| `FotoChamadoController` | Endpoints de fotos |
+| `FotoChamadoService` | Validação, processamento e persistência das fotos |
+| `Usuario` | Dados do usuário e perfil |
+| `PerfilUsuario` | Perfis SOLICITANTE e ATENDENTE |
+| `UsuarioRepository` | Persistência e busca por e-mail |
+| `UsuarioService` | Validação e cadastro de usuários |
+| `UsuarioController` | Endpoint de cadastro de usuários |
+| `UsuarioResposta` | Dados públicos do usuário |
+| `UsuarioDetalhesService` | Consulta do usuário para autenticação |
+| `ConfiguracaoSenhas` | Configuração do BCrypt |
+| `ConfiguracaoSeguranca` | Proteção HTTP, sessão e CSRF |
+| `ErroResposta` | Estrutura dos erros |
 | `TratadorDeErros` | Tratamento centralizado de erros |
-| `Usuario` | Dados do usuário e normalização de nome e e-mail |
-| `UsuarioRepository` | Persistência de usuários e busca por e-mail |
-| `ConfiguracaoSenhas` | Configuração do codificador BCrypt |
-| `CriarUsuarioRequest` | Dados recebidos no cadastro de usuários |
-| `UsuarioResposta` | Dados públicos retornados após o cadastro |
-| `UsuarioService` | Validação, geração de hash e gravação de usuários |
-| `UsuarioController` | Endpoint HTTP de cadastro de usuários |
-| `Main` | Interface de console mantida no projeto |
 
 ## Pré-requisitos
 
 - JDK 21 para reproduzir o ambiente da integração contínua.
 - Maven 3.9.x.
-- PostgreSQL 17 instalado.
+- PostgreSQL 17.
 - Node.js 24 e npm.
 - Git.
 
@@ -196,7 +237,7 @@ git clone https://github.com/Guilherme-Tonellidev/sistema-chamados-java.git
 cd sistema-chamados-java
 ```
 
-Se o projeto já estiver no computador, abra um terminal na pasta existente.
+Se o projeto já estiver no computador, utilize a pasta existente.
 
 ### 2. Preparar o PostgreSQL
 
@@ -219,24 +260,20 @@ Se o usuário e o banco já estiverem configurados, reutilize-os. O serviço do 
 
 ### 3. Configurar a conexão
 
-A conexão utiliza estas variáveis de ambiente:
-
 | Variável | Finalidade | Valor padrão |
 |---|---|---|
 | `DB_URL` | Endereço do banco | `jdbc:postgresql://localhost:5432/chamados_db` |
 | `DB_USER` | Usuário do banco | `chamados_app` |
 | `DB_PASSWORD` | Senha do banco | Sem valor padrão |
 
-A senha deve ser fornecida pela variável `DB_PASSWORD`.
-
-As configurações de persistência incluem:
+As configurações incluem:
 
 ```properties
 spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.open-in-view=false
 ```
 
-O Flyway aplica as migrações e o Hibernate valida a compatibilidade das tabelas com as entidades Java.
+O Flyway aplica as migrações e o Hibernate valida a compatibilidade das tabelas com as entidades.
 
 ### 4. Executar os testes Java
 
@@ -246,11 +283,11 @@ Na raiz do projeto, onde está o `pom.xml`:
 mvn clean test
 ```
 
-Os testes utilizam H2 em memória. Não é necessário iniciar o PostgreSQL nem definir `DB_PASSWORD` para executá-los.
+Os testes utilizam H2 em memória. Não é necessário iniciar o PostgreSQL nem definir `DB_PASSWORD`.
 
 ### 5. Iniciar o back-end
 
-Com o PostgreSQL em execução, utilize um terminal na raiz do projeto:
+Com o PostgreSQL em execução, utilize um terminal na raiz:
 
 ```powershell
 $senhaBanco = Read-Host "Senha do chamados_app" -AsSecureString
@@ -258,19 +295,17 @@ $env:DB_PASSWORD = [System.Net.NetworkCredential]::new("", $senhaBanco).Password
 mvn spring-boot:run
 ```
 
-Execute o comando Maven na raiz, não dentro da pasta `frontend`.
+Execute o Maven na raiz, não dentro de `frontend`.
 
-A senha permanece disponível nessa sessão do terminal. Se abrir outra sessão para iniciar a API, informe-a novamente.
+A variável de ambiente fica disponível nessa sessão do terminal. Em outra sessão, informe-a novamente.
 
 Não registre senhas reais no código ou em arquivos enviados ao GitHub.
 
-A API estará disponível em:
-
-[http://localhost:8080/chamados](http://localhost:8080/chamados)
+A API utiliza `http://localhost:8080`. Os endpoints de chamados exigem uma sessão autenticada.
 
 ### 6. Iniciar o front-end
 
-Abra outro terminal na raiz do projeto:
+Abra outro terminal na raiz:
 
 ```powershell
 cd frontend
@@ -278,27 +313,29 @@ npm ci
 npm run dev
 ```
 
-O comando `npm ci` instala as dependências registradas no `package-lock.json`.
+Nas próximas inicializações, se as dependências não tiverem mudado, basta executar `npm run dev` dentro de `frontend`.
 
-Nas próximas inicializações, se as dependências já estiverem instaladas e não tiverem mudado, basta executar `npm run dev` dentro de `frontend`.
+Abra [http://localhost:5173](http://localhost:5173).
 
-Abra:
+O Vite utiliza a porta 5173 com `strictPort: true`. Se ela estiver ocupada, informa um erro em vez de escolher outra porta.
 
-[http://localhost:5173](http://localhost:5173)
+Mantenha os dois terminais em execução. Para encerrar uma aplicação, pressione `Ctrl + C` no terminal correspondente.
 
-O Vite utiliza a porta 5173 com `strictPort: true`. Se a porta estiver ocupada, ele informará um erro em vez de escolher outra.
+Após alterar código Java, reinicie a API.
 
-Mantenha os terminais do back-end e do front-end em execução. Para encerrar cada aplicação, pressione `Ctrl + C` no terminal correspondente.
+### 7. Cadastrar um usuário e entrar
 
-Após alterar o código Java, reinicie a API para utilizar a versão atualizada.
+O projeto não cria automaticamente uma conta com as credenciais dos exemplos.
+
+Para uma instalação nova, utilize o exemplo de cadastro pela API apresentado adiante. Depois, entre na interface com o e-mail e a senha cadastrados.
+
+A sessão do PowerShell e a sessão do navegador são independentes. Fazer login pelo PowerShell não conecta automaticamente a interface.
 
 ## Comunicação entre front-end e API
 
-O arquivo `frontend/src/services/chamadosApi.js` centraliza as requisições HTTP de listagem, cadastro e mudança de status dos chamados.
-
 A interface utiliza caminhos iniciados por `/api`.
 
-Durante o desenvolvimento, o proxy do Vite encaminha essas requisições para `http://127.0.0.1:8080`, removendo o prefixo `/api`.
+Durante o desenvolvimento, o proxy do Vite encaminha as requisições para `http://127.0.0.1:8080`, removendo esse prefixo.
 
 Exemplo:
 
@@ -307,49 +344,70 @@ Exemplo:
 
 No modo `e2e`, a interface utiliza a porta 5174 e o proxy aponta para a API de testes na porta 8081.
 
-Essa configuração de proxy é exclusiva do desenvolvimento e dos testes locais. O projeto ainda não possui deploy configurado; a publicação exigirá definir como a interface acessará a API em produção.
+O serviço `autenticacaoApi.js` centraliza as operações de autenticação e obtenção do token CSRF. O serviço `chamadosApi.js` centraliza as operações de chamados e fotos.
+
+O projeto ainda não possui deploy configurado. A publicação exigirá definir como a interface acessará a API em produção.
 
 ## Utilizando a interface
 
-1. Preencha título, descrição e prioridade.
-2. Clique em **Cadastrar chamado**.
-3. Consulte a lista e utilize os filtros de status e prioridade.
-4. Clique em **Iniciar atendimento** em um chamado aberto.
-5. Clique em **Resolver chamado** quando ele estiver em atendimento.
-6. Use o botão de tema para alternar entre claro e escuro.
+1. Entre com um usuário cadastrado.
+2. Clique em **+ Criar chamado**.
+3. Preencha título, descrição e prioridade.
+4. Opcionalmente, clique em **+ Adicionar fotos** e selecione imagens.
+5. Clique em **Cadastrar chamado**.
+6. Consulte os detalhes abertos após o cadastro.
+7. Na tabela, clique no número ou no título para abrir os detalhes novamente.
+8. Utilize os filtros de status e prioridade.
+9. Clique em **Iniciar atendimento** em um chamado aberto.
+10. Clique em **Resolver chamado** quando ele estiver em atendimento.
+11. Utilize **Sair** para encerrar a sessão.
 
-Chamados resolvidos permanecem disponíveis para consulta, sem botão de mudança de status.
+A descrição fica nos detalhes, mantendo a tabela mais compacta.
 
 ### Comportamento dos filtros
 
 Os filtros podem ser usados separadamente ou combinados.
 
-Exemplo: selecionar `Aberto` e `Alta` retorna somente chamados abertos de prioridade alta.
+Exemplo: selecionar `Abertos` e prioridade `Alta` retorna somente chamados abertos de prioridade alta.
 
 - Alterar qualquer filtro retorna à primeira página.
 - Selecionar `Todas as prioridades` remove apenas o filtro de prioridade.
-- Selecionar `Todos os status` remove apenas o filtro de status.
+- Clicar em `Todos` remove apenas o filtro de status.
 - Atualizar a lista mantém os filtros e a página.
+- O filtro de prioridade da tabela não altera a prioridade do formulário.
 
-Após o cadastro, os filtros e a página também são mantidos. Como a ordenação é por ID crescente, o novo chamado aparece no final da lista quando corresponde aos filtros selecionados.
+Após o cadastro, os filtros e a página são mantidos. Os detalhes do novo chamado são abertos, mesmo que ele não esteja visível na página atual da tabela.
+
+A ordenação é por ID crescente. Um novo chamado aparece no final dos resultados quando corresponde aos filtros.
 
 Ao mudar o status, um chamado pode deixar de corresponder ao filtro. Se isso eliminar a última página, a interface ajusta a navegação para uma página válida.
 
 ## Endpoints
 
+Os caminhos abaixo são os da API, sem o prefixo `/api` utilizado pelo proxy do Vite.
+
 | Método | Caminho | Operação | Sucesso |
 |---|---|---|---|
-| GET | `/chamados` | Listar com filtros opcionais de status e prioridade | 200 |
-| GET | `/chamados/{id}` | Buscar pelo ID | 200 |
+| GET | `/auth/csrf` | Obter token CSRF | 200 |
+| POST | `/usuarios` | Cadastrar usuário | 201 |
+| POST | `/auth/login` | Iniciar sessão | 204 |
+| GET | `/auth/me` | Consultar usuário conectado | 200 |
+| POST | `/auth/logout` | Encerrar sessão | 204 |
+| GET | `/chamados` | Listar com filtros opcionais | 200 |
+| GET | `/chamados/paginados` | Listar com paginação e filtros | 200 |
+| GET | `/chamados/{id}` | Buscar chamado | 200 |
 | POST | `/chamados` | Abrir chamado | 201 |
 | PATCH | `/chamados/{id}/atendimento` | Iniciar atendimento | 200 |
 | PATCH | `/chamados/{id}/resolucao` | Resolver chamado | 200 |
-| GET | `/chamados/paginados` | Listar com paginação e filtros opcionais | 200 |
-| POST | `/usuarios` | Cadastrar usuário com senha armazenada como hash | 201 |
+| GET | `/chamados/{id}/fotos` | Listar metadados das fotos | 200 |
+| POST | `/chamados/{id}/fotos` | Enviar fotos | 201 |
+| GET | `/chamados/{id}/fotos/{fotoId}` | Consultar conteúdo da foto | 200 |
+
+Todos os endpoints de chamados e fotos exigem autenticação. As operações de escrita exigem CSRF, inclusive o cadastro de usuários e o login.
 
 ### Cadastro de chamado
 
-Corpo JSON enviado para `POST /chamados`:
+Corpo JSON de `POST /chamados`:
 
 ```json
 {
@@ -359,11 +417,11 @@ Corpo JSON enviado para `POST /chamados`:
 }
 ```
 
-Se a prioridade não for informada, a API utiliza `Normal`.
+Se a prioridade for omitida, a API utiliza `Normal`.
 
 ### Cadastro de usuário
 
-Corpo JSON enviado para `POST /usuarios`:
+Corpo JSON de `POST /usuarios`:
 
 ```json
 {
@@ -373,7 +431,7 @@ Corpo JSON enviado para `POST /usuarios`:
 }
 ```
 
-A senha acima é fictícia, exclusiva do exemplo local.
+A senha é exclusiva do exemplo local e não deve ser reutilizada em contas reais.
 
 Exemplo de resposta:
 
@@ -386,41 +444,39 @@ Exemplo de resposta:
 }
 ```
 
-O ID é gerado pelo banco e pode ser diferente do exemplo.
+O ID é gerado pelo banco. A resposta não contém senha, hash ou perfil.
 
-A resposta não contém a senha nem seu hash. Um novo cadastro com o mesmo e-mail normalizado retorna `409 Conflict`.
+O cadastro não inicia uma sessão. Repetir um e-mail normalizado retorna `409 Conflict`.
 
-O cadastro não inicia uma sessão e não autentica o usuário.
+### Login
 
-### Filtros de chamados
+O login recebe `email` e `senha` no formato `application/x-www-form-urlencoded`, não JSON.
 
-Valores aceitos:
+Login e logout bem-sucedidos retornam HTTP 204, sem corpo.
 
-| Filtro | Valores |
-|---|---|
-| `status` | `Aberto`, `Em atendimento`, `Resolvido` |
-| `prioridade` | `Baixa`, `Normal`, `Alta` |
+### Fotos
 
-Exemplos:
+O envio utiliza `multipart/form-data`, com um ou mais arquivos no campo `fotos`.
 
-```text
-GET /chamados?status=Aberto
-GET /chamados?prioridade=Alta
-GET /chamados?status=Aberto&prioridade=Alta
-```
+Ao utilizar `FormData` no navegador, não defina manualmente o cabeçalho `Content-Type`: o navegador inclui o delimitador necessário.
 
-A API normaliza diferenças entre letras maiúsculas e minúsculas e remove espaços nas extremidades dos valores dos filtros.
+A listagem e o envio retornam metadados com:
 
-Para listar sem um filtro, omita o parâmetro correspondente.
+- `id`
+- `nome`
+- `tipo`
+- `tamanho`
 
-### Paginação
+A consulta de uma foto individual retorna o conteúdo binário, com o tipo de mídia correspondente.
 
-| Parâmetro | Descrição | Padrão |
+### Filtros e paginação
+
+| Parâmetro | Valores ou limites | Padrão |
 |---|---|---|
-| `pagina` | Índice da página, começando em zero | `0` |
-| `tamanho` | Quantidade por página, entre 1 e 100 | `10` |
-| `status` | Filtro opcional por status | Sem filtro |
-| `prioridade` | Filtro opcional por prioridade | Sem filtro |
+| `pagina` | Índice começando em zero | `0` |
+| `tamanho` | Entre 1 e 100 | `10` |
+| `status` | `Aberto`, `Em atendimento`, `Resolvido` | Sem filtro |
+| `prioridade` | `Baixa`, `Normal`, `Alta` | Sem filtro |
 
 Exemplo:
 
@@ -428,22 +484,22 @@ Exemplo:
 GET /chamados/paginados?pagina=0&tamanho=5&status=Aberto&prioridade=Alta
 ```
 
-A resposta contém:
+A API normaliza maiúsculas, minúsculas e espaços nas extremidades dos filtros. Para remover um filtro, omita seu parâmetro.
+
+A resposta paginada contém:
 
 | Campo | Conteúdo |
 |---|---|
-| `chamados` | Chamados da página solicitada |
+| `chamados` | Chamados da página |
 | `pagina` | Índice da página |
 | `tamanho` | Tamanho solicitado |
-| `totalElementos` | Quantidade de chamados que correspondem aos filtros |
+| `totalElementos` | Total correspondente aos filtros |
 | `totalPaginas` | Quantidade de páginas |
-| `temProxima` | Indica se existe uma próxima página |
+| `temProxima` | Indica se há uma próxima página |
 
-A interface solicita 5 itens por página. A ordenação é por ID crescente.
+A interface solicita 5 itens por página.
 
 ### Dados de um chamado
-
-Os chamados retornados pela API incluem:
 
 - `id`
 - `titulo`
@@ -454,19 +510,22 @@ Os chamados retornados pela API incluem:
 - `dataInicioAtendimento`
 - `dataResolucao`
 
-Datas de transições que ainda não aconteceram permanecem sem valor. Registros anteriores à inclusão das datas também podem não possuir esses valores.
+Datas de transições ainda não realizadas permanecem sem valor. As fotos são consultadas por endpoints próprios.
 
 ### Erros
 
-As respostas padronizadas contêm `status`, `erro` e `caminho`.
+As respostas padronizadas utilizam `status`, `erro` e `caminho`.
 
 | Código | Exemplos |
 |---|---|
-| 400 Bad Request | Campos inválidos, prioridade inválida, e-mail inválido, senha fora dos limites, JSON malformado ou parâmetros inválidos |
-| 404 Not Found | Chamado inexistente |
-| 409 Conflict | Mudança de status incompatível com o estado atual ou e-mail já cadastrado |
+| 400 Bad Request | Campos, filtros, parâmetros ou imagens inválidos |
+| 401 Unauthorized | Ausência de autenticação ou credenciais inválidas |
+| 403 Forbidden | Token CSRF ausente ou inválido |
+| 404 Not Found | Chamado ou foto não encontrados |
+| 409 Conflict | Transição de status inválida ou e-mail duplicado |
+| 413 Payload Too Large | Requisição multipart acima dos limites configurados |
 
-Exemplo de conflito no cadastro de usuário:
+Exemplo:
 
 ```json
 {
@@ -478,13 +537,11 @@ Exemplo de conflito no cadastro de usuário:
 
 ## Exemplos da API no PowerShell
 
-Com a API em execução, abra outro terminal. Execute os exemplos na ordem,
-na mesma sessão do PowerShell, para preservar as variáveis e os cookies.
+Com a API em execução, abra outro terminal. Execute os exemplos na ordem, na mesma sessão do PowerShell, para preservar variáveis e cookies.
 
-Os comandos de cadastro criam registros no banco utilizado pela API.
-A senha de demonstração é fictícia e não deve ser reutilizada em contas reais.
+Os cadastros criam registros no banco utilizado pela API.
 
-### Preparar a sessão e obter o token CSRF
+### Preparar a sessão e o CSRF
 
 ```powershell
 $urlApi = "http://localhost:8080"
@@ -493,14 +550,7 @@ $csrf = Invoke-RestMethod `
     -Uri "$urlApi/auth/csrf" `
     -SessionVariable sessaoApi `
     -ErrorAction Stop
-```
 
-A variável `sessaoApi` guarda os cookies utilizados nas próximas requisições.
-Obter o token CSRF ainda não autentica o usuário.
-
-Defina esta função para obter um token atualizado antes das operações de escrita:
-
-```powershell
 function Obter-CabecalhoCsrf {
     $token = Invoke-RestMethod `
         -Uri "$urlApi/auth/csrf" `
@@ -514,10 +564,11 @@ function Obter-CabecalhoCsrf {
 }
 ```
 
+Obter o token CSRF não autentica o usuário. A função busca um token atualizado antes de cada operação de escrita.
+
 ### Cadastrar um usuário de demonstração
 
-O exemplo gera um e-mail diferente a cada execução para evitar conflito
-com uma conta de demonstração já cadastrada.
+O e-mail é diferente a cada execução para evitar conflito com contas existentes.
 
 ```powershell
 $emailDemonstracao = "demo-$([guid]::NewGuid().ToString('N'))@example.com"
@@ -542,14 +593,13 @@ $parametrosUsuario = @{
 Invoke-RestMethod @parametrosUsuario
 ```
 
-O cadastro não exige login, mas exige CSRF. A resposta apresenta
-`id`, `nome`, `email` e `ativo`, sem senha ou hash.
+Para utilizar esse usuário na interface, consulte o e-mail gerado:
 
-Repetir o cadastro com o mesmo e-mail retorna HTTP 409.
+```powershell
+$emailDemonstracao
+```
 
 ### Entrar com o usuário criado
-
-O login recebe dados no formato de formulário, não JSON.
 
 ```powershell
 $parametrosLogin = @{
@@ -568,11 +618,9 @@ $parametrosLogin = @{
 Invoke-RestMethod @parametrosLogin
 ```
 
-O sucesso retorna HTTP 204, sem corpo de resposta. Os cookies da sessão
-são atualizados em `sessaoApi`.
+O sucesso retorna HTTP 204. Os cookies são atualizados em `sessaoApi`.
 
-Após o login, o token CSRF anterior é invalidado. A função
-`Obter-CabecalhoCsrf` obtém um token atualizado antes de cada escrita.
+Após o login, obtenha um token CSRF atualizado antes de outra escrita. A função definida anteriormente faz isso.
 
 ### Consultar o usuário conectado
 
@@ -606,34 +654,26 @@ $chamado = Invoke-RestMethod @parametrosCadastro
 $chamado
 ```
 
-### Listar chamados
+### Consultar chamados
 
 ```powershell
 Invoke-RestMethod `
     -Uri "$urlApi/chamados" `
     -WebSession $sessaoApi `
     -ErrorAction Stop
-```
 
-### Buscar o chamado criado
-
-```powershell
 Invoke-RestMethod `
     -Uri "$urlApi/chamados/$($chamado.id)" `
     -WebSession $sessaoApi `
     -ErrorAction Stop
-```
 
-### Consultar com filtros combinados
-
-```powershell
 Invoke-RestMethod `
     -Uri "$urlApi/chamados/paginados?pagina=0&tamanho=5&status=Aberto&prioridade=Alta" `
     -WebSession $sessaoApi `
     -ErrorAction Stop
 ```
 
-### Iniciar atendimento
+### Iniciar atendimento e resolver
 
 ```powershell
 Invoke-RestMethod `
@@ -642,11 +682,7 @@ Invoke-RestMethod `
     -WebSession $sessaoApi `
     -Headers (Obter-CabecalhoCsrf) `
     -ErrorAction Stop
-```
 
-### Resolver o chamado
-
-```powershell
 Invoke-RestMethod `
     -Uri "$urlApi/chamados/$($chamado.id)/resolucao" `
     -Method Patch `
@@ -654,6 +690,17 @@ Invoke-RestMethod `
     -Headers (Obter-CabecalhoCsrf) `
     -ErrorAction Stop
 ```
+
+### Consultar metadados das fotos
+
+```powershell
+Invoke-RestMethod `
+    -Uri "$urlApi/chamados/$($chamado.id)/fotos" `
+    -WebSession $sessaoApi `
+    -ErrorAction Stop
+```
+
+Um chamado sem fotos retorna uma lista vazia. Para experimentar o envio, utilize o formulário ou os detalhes na interface.
 
 ### Encerrar a sessão
 
@@ -666,59 +713,53 @@ Invoke-RestMethod `
     -ErrorAction Stop
 ```
 
-O sucesso retorna HTTP 204, sem corpo de resposta. Após o logout, consultar
-`/auth/me` ou os chamados exige um novo login.
-
-### Respostas de segurança
-
-- Consultas protegidas sem sessão autenticada retornam HTTP 401.
-- Operações de escrita sem token CSRF válido retornam HTTP 403.
-- Um token CSRF válido não substitui a autenticação.
-- Qualquer usuário autenticado pode operar os chamados nesta etapa;
-  ainda não há restrições por proprietário ou perfil.
+Após o logout, consultar `/auth/me`, chamados ou fotos exige um novo login.
 
 ## Persistência e migrações
 
-Os chamados e usuários são armazenados no PostgreSQL.
+Chamados, usuários e fotos são armazenados no PostgreSQL.
 
-As migrações ficam em:
-
-```text
-src/main/resources/db/migration
-```
-
-As migrações versionadas do projeto são:
+As migrações ficam em `src/main/resources/db/migration`.
 
 | Versão | Alteração |
 |---|---|
-| V1 | Criação da tabela `chamados` |
-| V2 | Inclusão da data de abertura |
-| V3 | Inclusão das datas de início do atendimento e resolução |
-| V4 | Inclusão da prioridade, com valor padrão `Normal` |
-| V5 | Criação da tabela `usuarios`, com e-mail único e campo para hash da senha |
+| V1 | Criação da tabela de chamados |
+| V2 | Data de abertura |
+| V3 | Datas de início do atendimento e resolução |
+| V4 | Prioridade, com padrão Normal |
+| V5 | Usuários, e-mail único e hash da senha |
+| V6 | Perfil do usuário |
+| V7 | Fotos vinculadas aos chamados |
 
-O Hibernate utiliza `ddl-auto=validate`. Alterações na estrutura do banco devem ser realizadas por novas migrações versionadas, sem editar migrações já aplicadas.
+O Hibernate utiliza `ddl-auto=validate`. Alterações na estrutura devem ser feitas por novas migrações, sem editar migrações já aplicadas.
 
-O banco existente do ambiente de desenvolvimento já foi adotado pelo Flyway com baseline 0. Essa adoção não deve ser repetida. Uma instalação nova com banco vazio utiliza as migrações normalmente.
+O banco original do ambiente de desenvolvimento foi adotado pelo Flyway com baseline 0. Essa adoção não deve ser repetida. Instalações novas com banco vazio utilizam as migrações normalmente.
 
-A adição dos filtros combinados reutiliza as colunas existentes e não exige uma nova migração.
+Para conferir a persistência no PostgreSQL:
 
-A V5 cria a tabela de usuários sem modificar a tabela de chamados. Sua aplicação foi confirmada no PostgreSQL do ambiente de desenvolvimento e sua execução também é validada nos testes com H2.
-
-O cadastro de um usuário de demonstração pela API foi conferido com PostgreSQL, retornando HTTP 201 e somente os dados públicos do usuário.
-
-Para conferir a persistência dos chamados:
-
-1. Cadastre um chamado.
+1. Cadastre um chamado com foto.
 2. Encerre a API com `Ctrl + C`.
-3. Execute novamente `mvn spring-boot:run` no mesmo terminal.
-4. Atualize a lista na interface.
+3. Inicie novamente a API no mesmo terminal.
+4. Entre novamente na interface, se necessário.
+5. Abra o chamado e confira os dados e a foto.
 
 ## Testes e verificações
 
-### Back-end — 97 testes automatizados
+Resultados das execuções locais verificadas nesta versão:
 
-Na raiz do projeto:
+| Verificação | Resultado |
+|---|---|
+| Back-end | 107 testes aprovados |
+| Interface React | 36 testes aprovados |
+| Playwright | 3 testes aprovados |
+| Oxlint | 0 avisos e 0 erros |
+| Build do front-end | Concluído com sucesso |
+
+O badge no início do README informa separadamente o resultado do workflow executado no GitHub.
+
+### Back-end
+
+Na raiz:
 
 ```powershell
 mvn clean test
@@ -726,145 +767,110 @@ mvn clean test
 
 A suíte cobre:
 
-- Bloqueio de consultas e operações de chamados sem autenticação.
-- Rejeição de operações de escrita sem CSRF.
-- Cadastro e transições de chamados com autenticação e CSRF.
-- Cadastro, listagem e busca de chamados por ID.
-- Validação dos campos e das prioridades.
-- Transições de status.
-- Registro das datas.
-- Filtros por status e prioridade.
-- Combinação dos filtros.
-- Paginação, ordenação e resultados vazios.
-- Persistência e respostas padronizadas de erro.
-- Gravação e recuperação de usuários ativos.
-- Normalização do nome e do e-mail antes da gravação.
-- Busca de usuários pelo e-mail e consulta sem resultado.
-- Rejeição de e-mails duplicados após normalização.
-- Geração de hash BCrypt e reconhecimento da senha correta.
-- Rejeição de senha incorreta.
-- Geração de hashes diferentes para a mesma senha.
-- Cadastro de usuários pela API com resposta sem senha ou hash.
-- Validação de campos obrigatórios, nome, e-mail e senha.
-- Limites de senha em caracteres e bytes UTF-8.
-- Preservação dos espaços da senha.
-- Rejeição de JSON malformado no cadastro de usuários.
+- Cadastro, consulta, filtros, paginação e transições dos chamados.
+- Validação de campos, prioridades e datas.
+- Persistência e respostas de erro.
+- Cadastro de usuários, normalização e duplicidade de e-mail.
+- Hash BCrypt e limites de senha.
+- Autenticação, sessão e proteção CSRF.
+- Persistência do perfil de usuário.
+- Envio, consulta e validação de fotos.
+- Limites de quantidade e tamanho das fotos.
+- Rejeição de arquivos inválidos sem gravação parcial do lote.
+- Proteção dos endpoints de fotos.
+- Consulta de uma foto somente pelo chamado ao qual está vinculada.
 
-A cobertura relacionada aos usuários está distribuída em:
+Os testes utilizam o perfil `test`, H2 em memória e migrações Flyway. Não dependem do PostgreSQL nem de `DB_PASSWORD`.
 
-| Arquivo | Quantidade | Cobertura |
-|---|---|---|
-| `UsuarioRepositoryTest` | 5 | Persistência, normalização, busca e duplicidade |
-| `ConfiguracaoSenhasTest` | 3 | Configuração do hash e verificação de senhas |
-| `UsuarioCadastroTest` | 11 | Endpoint de cadastro, validações e dados retornados |
+O H2 permite testes independentes, mas não substitui a verificação com PostgreSQL.
 
-Os testes utilizam o perfil `test`, H2 em memória e migrações Flyway. O banco de testes é separado do PostgreSQL da aplicação.
+### Interface React
 
-Os testes de persistência e cadastro de usuários utilizam transações desfeitas ao final de cada caso.
-
-O valor fictício utilizado como hash em `UsuarioRepositoryTest` serve apenas para verificar armazenamento. Os testes de configuração e cadastro utilizam o codificador BCrypt real, com senhas fictícias.
-
-Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD` para executar essa suíte.
-
-O H2 permite executar os testes de forma independente, mas não substitui a verificação da aplicação com PostgreSQL.
-
-### Front-end — 27 testes automatizados
-
-Dentro de `frontend`, com as dependências instaladas:
+Dentro de `frontend`:
 
 ```powershell
 npm test
 ```
 
-Os testes utilizam Vitest, React Testing Library, jest-dom e user-event, com ambiente DOM simulado pelo jsdom.
+| Arquivo | Quantidade |
+|---|---|
+| `App.test.jsx` | 14 |
+| `App.prioridade.test.jsx` | 3 |
+| `App.filtros.test.jsx` | 6 |
+| `App.tema.test.jsx` | 8 |
+| `App.autenticacao.test.jsx` | 5 |
 
 A suíte verifica:
 
-- Listagem, lista vazia e limites de paginação.
-- Nova tentativa após falha de conexão.
-- Cadastro e remoção de espaços nas extremidades dos campos.
-- Limpeza do formulário após sucesso.
-- Bloqueio de cadastro com campos contendo apenas espaços.
-- Preservação dos campos após falha no cadastro.
-- Início do atendimento e resolução.
-- Apresentação de erro ao rejeitar uma mudança de status.
-- Cadastro com prioridades Baixa e Alta.
-- Retorno da prioridade do formulário para Normal após sucesso.
-- Preservação da prioridade selecionada após falha.
-- Envio do filtro de prioridade sem alterar a prioridade do formulário.
-- Combinação dos filtros de status e prioridade, incluindo resultados vazios.
-- Retorno à primeira página ao alterar qualquer filtro, preservando o outro.
-- Remoção de um filtro sem remover o outro.
-- Tema claro quando não há preferência salva ou o valor salvo é inválido.
-- Recuperação das preferências de tema claro e escuro.
-- Alternância entre temas, atualização do botão e gravação da preferência.
-- Recuperação da escolha ao montar a aplicação novamente.
-- Funcionamento do tema quando a leitura ou a gravação no armazenamento falha.
+- Tabela, estados de carregamento, lista vazia e paginação.
+- Cadastro, validação, limpeza e preservação dos campos.
+- Transições de status e falhas retornadas pela API.
+- Abertura dos detalhes pelo número e pelo título.
+- Seleção, remoção antes do envio e envio de fotos.
+- Preservação do chamado quando o envio das fotos falha.
+- Prioridades e filtros combinados.
+- Temas e falhas de armazenamento da preferência.
+- Login, recuperação de sessão, logout e erros de autenticação.
 
-As chamadas `fetch` são simuladas. Os testes verificam os parâmetros enviados à API e o resultado apresentado na interface.
+As chamadas HTTP são simuladas. Esses testes não dependem da API Java em execução e não acessam o PostgreSQL.
 
-A suíte não depende da API Java em execução e não acessa o PostgreSQL. Ela não substitui testes de ponta a ponta com navegador, API e banco reais.
+Para executar novamente ao salvar alterações:
 
-Os filtros combinados também foram conferidos manualmente na interface.
+```powershell
+npm run test:watch
+```
 
-### Ponta a ponta — 2 testes com Playwright
+Encerre com `Ctrl + C`.
 
-O projeto possui 2 testes de ponta a ponta:
+### Ponta a ponta
 
-- Fluxo completo: cadastro de chamado, início do atendimento e resolução, verificando mensagens, botões, limpeza do formulário e manutenção do status após recarregar a página.
-- Filtros combinados: prepara quatro chamados pela API real e verifica pelo navegador a combinação de status e prioridade, os parâmetros enviados e a remoção de cada filtro preservando o outro. Percorre as páginas para conferir os resultados.
+Os 3 testes Playwright verificam:
 
-Os testes utilizam a interface React, a API Java em execução e H2 em memória, sem simular as chamadas HTTP.
+1. Cadastro com foto, detalhes, abertura da imagem em outra aba, início do atendimento, resolução e manutenção dos dados após recarregar.
+2. Combinação de status e prioridade e remoção de cada filtro preservando o outro, percorrendo as páginas.
+3. Rejeição de senha incorreta, login, manutenção da sessão após recarregar e logout.
 
-Esse ambiente usa portas próprias:
+Os testes utilizam React, API Java e H2 em memória, sem simular as chamadas HTTP.
+
+Portas:
 
 - API de testes: `http://127.0.0.1:8081`.
 - Interface de testes: `http://127.0.0.1:5174`.
 
-Não é necessário iniciar o PostgreSQL nem configurar `DB_PASSWORD`. Os dados ficam no banco temporário `chamados_e2e` e desaparecem quando a API de testes é encerrada.
-
-Na raiz do projeto, inicie a API de testes:
+Na raiz, inicie a API de testes:
 
 ```powershell
 mvn test-compile spring-boot:test-run "-Dspring-boot.run.profiles=e2e"
 ```
 
-Mantenha esse terminal em execução.
+Mantenha esse terminal aberto.
 
-Em outro terminal, dentro de `frontend`, instale as dependências e o navegador na primeira utilização:
+Em outro terminal, dentro de `frontend`, prepare as dependências na primeira utilização:
 
 ```powershell
 npm ci
 npx playwright install chromium
 ```
 
-Execute os testes:
+Execute:
 
 ```powershell
 npx playwright test
 ```
 
-O Playwright inicia e encerra a interface de testes automaticamente. A API deve permanecer em execução durante os testes e pode ser encerrada depois com `Ctrl + C`.
+O Playwright inicia e encerra a interface de testes automaticamente. Os testes criam seus usuários e fazem login; não é necessário entrar manualmente.
 
-Se a interface de testes na porta 5174 estiver aberta manualmente, encerre-a antes de executar o Playwright, pois sua configuração não reutiliza servidores existentes.
+A API deve permanecer em execução. Não é necessário iniciar PostgreSQL nem configurar `DB_PASSWORD`.
 
-Os testes utilizam títulos únicos e percorrem as páginas para localizar e conferir seus chamados, permitindo novas execuções no mesmo banco temporário.
+Os dados do banco temporário `chamados_e2e` desaparecem quando a API de testes é encerrada.
 
-Em caso de falha, os arquivos de diagnóstico ficam em `frontend/e2e/resultados`, pasta ignorada pelo Git.
+Se a interface na porta 5174 estiver aberta manualmente, encerre-a antes dos testes: a configuração não reutiliza servidores existentes.
 
-Esses testes verificam a integração com H2; não substituem a verificação com PostgreSQL. Recarregar a página também não equivale a reiniciar a API.
+Os testes utilizam identificadores únicos e percorrem as páginas para localizar seus chamados, permitindo novas execuções no mesmo banco temporário.
 
-Os 27 testes React continuam sendo executados separadamente por `npm test`. Os testes Playwright também são executados pelo GitHub Actions, em um job independente que prepara o Chromium, inicia a API com H2 e executa os testes no navegador.
+Em caso de falha, os diagnósticos ficam em `frontend/e2e/resultados`, pasta ignorada pelo Git.
 
-### Modo de acompanhamento
-
-Dentro de `frontend`, para executar novamente os testes React ao salvar alterações:
-
-```powershell
-npm run test:watch
-```
-
-Para encerrar, pressione `Ctrl + C`.
+Esses testes verificam a integração com H2. Recarregar a página não equivale a reiniciar a API nem comprova, por si só, persistência no PostgreSQL.
 
 ### Análise de código e build
 
@@ -875,26 +881,23 @@ npm run lint
 npm run build
 ```
 
-- `lint`: analisa o código com Oxlint.
-- `build`: gera a versão de produção em `frontend/dist`.
-
-Gerar o build não publica a aplicação.
+O lint analisa o código com Oxlint. O build gera os arquivos de produção em `frontend/dist`, sem publicar a aplicação.
 
 ### Resumo dos comandos
 
 | Diretório | Comando | Finalidade |
 |---|---|---|
-| Raiz | `mvn clean test` | Executar os testes Java |
-| Raiz | `mvn spring-boot:run` | Iniciar a API com PostgreSQL, após configurar a conexão |
-| Raiz | `mvn test-compile spring-boot:test-run "-Dspring-boot.run.profiles=e2e"` | Iniciar a API de testes com H2 na porta 8081 |
-| `frontend` | `npm ci` | Instalar as dependências do lockfile |
-| `frontend` | `npm run dev` | Iniciar a interface de desenvolvimento na porta 5173 |
-| `frontend` | `npm test` | Executar os testes React |
-| `frontend` | `npm run test:watch` | Executar testes React ao salvar alterações |
-| `frontend` | `npm run lint` | Analisar o código |
-| `frontend` | `npm run build` | Gerar o build de produção |
-| `frontend` | `npx playwright install chromium` | Instalar o navegador dos testes de ponta a ponta |
-| `frontend` | `npx playwright test` | Executar os testes de ponta a ponta com a API H2 em execução |
+| Raiz | `mvn clean test` | Testes Java |
+| Raiz | `mvn spring-boot:run` | API com PostgreSQL |
+| Raiz | `mvn test-compile spring-boot:test-run "-Dspring-boot.run.profiles=e2e"` | API de testes com H2 |
+| `frontend` | `npm ci` | Instalar dependências |
+| `frontend` | `npm run dev` | Interface local |
+| `frontend` | `npm test` | Testes React |
+| `frontend` | `npm run test:watch` | Testes React ao salvar |
+| `frontend` | `npm run lint` | Análise de código |
+| `frontend` | `npm run build` | Build de produção |
+| `frontend` | `npx playwright install chromium` | Instalar navegador dos testes |
+| `frontend` | `npx playwright test` | Testes de ponta a ponta |
 
 ## Integração contínua
 
@@ -902,98 +905,55 @@ O GitHub Actions executa três verificações independentes:
 
 | Verificação | Etapas |
 |---|---|
-| Java | Configurar Java 21 e executar os testes Maven |
-| Front-end | Configurar Node 24, instalar dependências, executar lint, testes e build |
-| Ponta a ponta | Configurar Java 21 e Node 24, instalar Chromium, iniciar a API com H2 e executar Playwright |
+| Java | Java 21 e testes Maven |
+| Front-end | Node 24, dependências, lint, testes e build |
+| Ponta a ponta | Java 21, Node 24, Chromium, API com H2 e Playwright |
+
+O workflow é executado em pushes para `main`, pull requests direcionados a `main` e acionamento manual pela aba Actions.
+
+A configuração fica em `.github/workflows/testes.yml`.
 
 Se o job de ponta a ponta falhar, os diagnósticos disponíveis são armazenados no artefato `diagnosticos-e2e` por 7 dias.
-
-O workflow é executado em:
-
-- Pushes para `main`.
-- Pull requests direcionados a `main`.
-- Acionamento manual pela aba Actions.
-
-A configuração fica em:
-
-```text
-.github/workflows/testes.yml
-```
-
-O badge no início deste README indica o resultado do workflow no GitHub.
 
 [Consultar execuções no GitHub Actions](https://github.com/Guilherme-Tonellidev/sistema-chamados-java/actions)
 
 ## Autenticação e proteção da API
 
-O cadastro de usuários pela API e o login pela interface estão implementados.
-
-A estrutura atual inclui:
-
-- Tabela `usuarios`, criada pela migração V5.
-- Entidade `Usuario` e consulta por e-mail normalizado.
-- Configuração BCrypt com fator de custo 12 e prefixo `{bcrypt}`.
-- Cadastro pela API em `POST /usuarios`, com validação e tratamento de e-mail duplicado.
-- Resposta de usuário contendo somente `id`, `nome`, `email` e `ativo`.
-- Tela de login com e-mail e senha.
-- Autenticação com sessão mantida por cookie.
-- Recuperação da sessão ao recarregar a página.
-- Logout com encerramento da sessão no servidor.
-- Proteção CSRF no login, logout, cadastro de usuários, cadastro de chamados e mudanças de status.
-- Exigência de autenticação em todos os endpoints de chamados.
+- BCrypt com fator de custo 12 e prefixo `{bcrypt}`.
+- Sessão mantida por cookie.
 - Troca do identificador da sessão após o login.
+- Recuperação da sessão pela interface.
+- Logout com encerramento da sessão no servidor.
 - Rejeição de credenciais inválidas e contas inativas.
-- Mensagem genérica de falha, sem informar se o e-mail existe.
-- Testes automatizados de persistência, cadastro, autenticação e sessão.
-- Verificação manual de login, recarga e logout com PostgreSQL.
+- Mensagem genérica de falha de login.
+- Proteção CSRF nas operações de escrita.
+- Autenticação obrigatória para chamados e fotos.
+- Cadastro de usuários disponível sem login, mas com CSRF.
+- Senhas e hashes ausentes das respostas públicas de usuário.
 
-### Endpoints de autenticação
+A interface não armazena a senha no armazenamento local do navegador.
 
-| Método | Caminho | Finalidade |
-|---|---|---|
-| GET | `/auth/csrf` | Obter o token CSRF |
-| POST | `/auth/login` | Autenticar e iniciar a sessão |
-| GET | `/auth/me` | Consultar o usuário autenticado |
-| POST | `/auth/logout` | Encerrar a sessão |
+Um token CSRF válido não substitui a autenticação. Consultas protegidas sem sessão retornam HTTP 401; escritas sem CSRF válido retornam HTTP 403.
 
-O login recebe `email` e `senha` no formato
-`application/x-www-form-urlencoded`. Login e logout bem-sucedidos retornam
-HTTP 204.
+Quando uma operação de chamados retorna HTTP 401, a interface orienta a recarregar a página e entrar novamente.
 
-A interface envia o token CSRF no cabeçalho indicado por `/auth/csrf`.
-Após o login, um token atualizado é obtido antes do logout.
+### Limites atuais
 
-A senha não é armazenada pela aplicação no armazenamento local do navegador.
-O hash é excluído da representação JSON da entidade. O objeto de entrada do
-cadastro também omite a senha na serialização e no método `toString()`.
-
-### Controle de acesso e limites atuais
-
-Todos os endpoints de chamados exigem uma sessão autenticada, incluindo
-listagem, consulta por ID, paginação, cadastro e mudanças de status.
-
-As operações de escrita também exigem um token CSRF válido. O cadastro de
-usuários permanece disponível sem login, mas exige CSRF.
-
-A interface obtém o token em `/auth/csrf` antes de cadastrar um chamado ou
-alterar seu status. Se uma consulta ou operação retornar HTTP 401, apresenta
-uma mensagem orientando o usuário a recarregar a página e entrar novamente.
-
-Qualquer usuário autenticado pode consultar e operar todos os chamados.
-Ainda não há separação por proprietário nem permissões por perfil.
-
-Ainda não há recuperação de senha, confirmação de propriedade do e-mail
-ou tela de cadastro de usuários.
-
-Os chamados existentes ainda não possuem vínculo com usuários.
+- Os perfis estão persistidos, mas ainda não controlam permissões.
+- Qualquer usuário autenticado pode consultar e operar todos os chamados e fotos.
+- Os chamados ainda não estão vinculados a um proprietário.
+- Não há recuperação de senha nem confirmação de propriedade do e-mail.
+- Não há tela de cadastro de usuários.
+- Não há exclusão de fotos já salvas.
+- O deploy ainda não foi configurado.
 
 ## Próximas melhorias
 
-- Definir perfis de acesso e regras de autorização por usuário.
+- Aplicar regras de autorização aos perfis existentes.
+- Vincular chamados aos usuários e definir acesso por proprietário.
 - Criar a tela de cadastro de usuários.
 - Preparar a configuração de produção.
 - Realizar o deploy da aplicação.
-
 
 ## Autor
 
