@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -43,6 +42,9 @@ class AutenticacaoHttpTest {
     private UsuarioRepository repository;
 
     @Autowired
+    private ChamadoRepository chamadoRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -56,6 +58,9 @@ class AutenticacaoHttpTest {
             .webAppContextSetup(context)
             .apply(springSecurity())
             .build();
+
+        chamadoRepository.deleteAll();
+        chamadoRepository.flush();
 
         repository.deleteAll();
         repository.flush();

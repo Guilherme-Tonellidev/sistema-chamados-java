@@ -37,16 +37,22 @@ class AutenticacaoTest {
     @Autowired
     private UsuarioRepository repository;
 
+    @Autowired
+    private ChamadoRepository chamadoRepository;
+
     @BeforeEach
-    void preparar() {
+        void preparar() {
+        chamadoRepository.deleteAll();
+        chamadoRepository.flush();
+
         repository.deleteAll();
         repository.flush();
 
-        Usuario usuario = new Usuario(
-            "Usuario Login",
-            EMAIL,
-            passwordEncoder.encode(SENHA)
-        );
+    Usuario usuario = new Usuario(
+        "Usuario Login",
+        EMAIL,
+        passwordEncoder.encode(SENHA)
+    );
 
         repository.saveAndFlush(usuario);
     }
