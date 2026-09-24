@@ -43,6 +43,9 @@ class UsuarioCadastroTest {
     private UsuarioRepository repository;
 
     @Autowired
+    private ChamadoRepository chamadoRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -56,14 +59,19 @@ class UsuarioCadastroTest {
     @BeforeEach
     void preparar() {
         mockMvc = MockMvcBuilders
-    .webAppContextSetup(context)
-    .apply(springSecurity())
-    .build();
+        .webAppContextSetup(context)
+        .apply(springSecurity())
+        .build();
 
-        repository.deleteAll();
-        repository.flush();
-        entityManager.clear();
-    }
+    // Exclui primeiro os chamados que podem referenciar usuários.
+    chamadoRepository.deleteAll();
+    chamadoRepository.flush();
+
+    repository.deleteAll();
+    repository.flush();
+
+    entityManager.clear();
+}
 
     @Test
     void deveCadastrarComDadosNormalizadosESenhaProtegida() throws Exception {

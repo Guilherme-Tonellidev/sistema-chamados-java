@@ -43,17 +43,19 @@ public class ChamadoControllerTest extends BaseIntegracaoTest {
             )
             .andExpect(jsonPath("$.status").value("Aberto"));
 
+        autenticarComo(usuarioTeste);
+
         int id = service.listarChamados().get(0).getId();
 
-        mockMvc.perform(get("/chamados"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value(id))
-            .andExpect(
-                jsonPath("$[0].titulo").value("Computador sem internet")
+            mockMvc.perform(get("/chamados"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(id))
+                .andExpect(
+                    jsonPath("$[0].titulo").value("Computador sem internet")
             )
-            .andExpect(jsonPath("$[0].status").value("Aberto"));
-    }
+                .andExpect(jsonPath("$[0].status").value("Aberto"));
+        }
 
     @Test
     void deveRecusarTituloVazioComStatus400() throws Exception {

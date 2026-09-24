@@ -49,7 +49,10 @@ class UsuarioDetalhesServiceTest {
         assertEquals("teste@example.com", detalhes.getUsername());
         assertEquals(HASH_TESTE, detalhes.getPassword());
         assertTrue(detalhes.isEnabled());
-        assertTrue(detalhes.getAuthorities().isEmpty());
+        assertEquals(1, detalhes.getAuthorities().size());
+        assertEquals("ROLE_SOLICITANTE",
+        detalhes.getAuthorities().iterator().next().getAuthority()
+        );
 
         verify(repository).findByEmail("teste@example.com");
     }
@@ -97,5 +100,35 @@ class UsuarioDetalhesServiceTest {
         );
 
         assertFalse(detalhes.isEnabled());
+    }
+    @Test
+    void deveCarregarPermissaoDeAtendente() {
+        Usuario usuario = new Usuario(
+            "Atendente Teste",
+            "atendente@example.com",
+            HASH_TESTE
+        );
+
+        ReflectionTestUtils.setField(
+            usuario,
+            "perfil",
+            PerfilUsuario.ATENDENTE
+        );
+
+        when(repository.findByEmail("atendente@example.com"))
+            .thenReturn(Optional.of(usuario));
+
+        UserDetails detalhes = service.loadUserByUsername(
+            "atendente@example.com"
+        );
+
+        assertTrue(detalhes.isEnabled());
+        assertEquals(1, detalhes.getAuthorities().size());
+        assertEquals(
+            "ROLE_ATENDENTE",
+            detalhes.getAuthorities().iterator().next().getAuthority()
+        );
+
+        verify(repository).findByEmail("atendente@example.com");
     }
 }

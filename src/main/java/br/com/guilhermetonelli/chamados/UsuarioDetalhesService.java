@@ -1,6 +1,5 @@
 package br.com.guilhermetonelli.chamados;
 
-import java.util.Collections;
 import java.util.Locale;
 
 import org.springframework.security.core.userdetails.User;
@@ -33,7 +32,7 @@ public class UsuarioDetalhesService implements UserDetailsService {
 
         return User.withUsername(usuario.getEmail())
             .password(usuario.getSenhaHash())
-            .authorities(Collections.emptyList())
+            .authorities("ROLE_" + usuario.getPerfil().name())
             .disabled(!usuario.isAtivo())
             .build();
     }

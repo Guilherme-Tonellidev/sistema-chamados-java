@@ -28,15 +28,23 @@ class UsuarioRepositoryTest {
     private UsuarioRepository repository;
 
     @Autowired
+    private ChamadoRepository chamadoRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     @BeforeEach
     void preparar() {
-        // Afeta somente o banco H2 dentro da transação deste teste.
-        repository.deleteAll();
-        repository.flush();
-        entityManager.clear();
-    }
+    // Limpa primeiro os chamados que podem referenciar usuários.
+    // Afeta somente o H2 dentro da transação deste teste.
+    chamadoRepository.deleteAll();
+    chamadoRepository.flush();
+
+    repository.deleteAll();
+    repository.flush();
+
+    entityManager.clear();
+}
 
     @Test
     void deveSalvarERecuperarUsuarioAtivo() {

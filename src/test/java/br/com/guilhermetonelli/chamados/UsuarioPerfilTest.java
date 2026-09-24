@@ -27,6 +27,9 @@ class UsuarioPerfilTest {
     private UsuarioRepository repository;
 
     @Autowired
+    private ChamadoRepository chamadoRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     @Autowired
@@ -34,10 +37,13 @@ class UsuarioPerfilTest {
 
     @BeforeEach
     void preparar() {
+        chamadoRepository.deleteAll();
+        chamadoRepository.flush();
+
         repository.deleteAll();
         repository.flush();
         entityManager.clear();
-    }
+}
 
     @Test
     void devePersistirNovoUsuarioComoSolicitante() {

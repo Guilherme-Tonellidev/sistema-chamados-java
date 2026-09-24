@@ -4,7 +4,8 @@ public record UsuarioResposta(
     Integer id,
     String nome,
     String email,
-    boolean ativo
+    boolean ativo,
+    PerfilUsuario perfil
 ) {
 
     public static UsuarioResposta de(Usuario usuario) {
@@ -12,7 +13,8 @@ public record UsuarioResposta(
             usuario.getId(),
             usuario.getNome(),
             usuario.getEmail(),
-            usuario.isAtivo()
+            usuario.isAtivo(),
+            usuario.getPerfil()
         );
     }
 }

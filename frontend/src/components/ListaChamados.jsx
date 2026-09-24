@@ -47,6 +47,7 @@ function DataAbertura({ valor }) {
 }
 
 export default function ListaChamados({
+  podeAlterarStatus = false,
   aoAbrirChamado,
   dados,
   filtro,
@@ -177,7 +178,7 @@ export default function ListaChamados({
                   <th scope="col">Prioridade</th>
                   <th scope="col">Status</th>
                   <th scope="col">Abertura</th>
-                  <th scope="col">Ações</th>
+                  {podeAlterarStatus && <th scope="col">Ações</th>}
                 </tr>
               </thead>
 
@@ -229,6 +230,7 @@ export default function ListaChamados({
                         <DataAbertura valor={chamado.dataAbertura} />
                       </td>
 
+                    {podeAlterarStatus && (
                       <td>
                         {textoAcao ? (
                           <button
@@ -246,6 +248,7 @@ export default function ListaChamados({
                           </span>
                         )}
                       </td>
+                    )}
                     </tr>
                   )
                 })}

@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { test as testeBase, expect } from '@playwright/test'
 
+export const tecnicoTeste = {
+  email: 'tecnico@example.com',
+  senha: 'TecnicoTeste2026!',
+}
+
 export async function obterCabecalhosCsrf(request) {
   const resposta = await request.get('/api/auth/csrf')
 

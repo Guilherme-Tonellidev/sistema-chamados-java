@@ -9,24 +9,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Transactional
-class ChamadoDatasStatusTest {
-
-    @Autowired
-    private ChamadoService service;
+    @Transactional
+        class ChamadoDatasStatusTest extends BaseIntegracaoTest {
 
     @PersistenceContext
-    private EntityManager entityManager;
+        private EntityManager entityManager;
 
     @Test
     void deveGravarAsDatasEManterOHistoricoAoResolver() {

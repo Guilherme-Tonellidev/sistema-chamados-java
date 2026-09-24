@@ -19,6 +19,9 @@ public class Chamado {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "solicitante_id", updatable = false)
+    private Integer solicitanteId;
+
     @Column(nullable = false, columnDefinition = "text")
     private String titulo;
 
@@ -59,6 +62,23 @@ public class Chamado {
         this.id = id;
     }
 
+    public Chamado(
+        String titulo,
+        String descricao,
+        String prioridade,
+        Integer solicitanteId) {
+
+    this(titulo, descricao, prioridade);
+
+    if (solicitanteId == null || solicitanteId <= 0) {
+        throw new IllegalArgumentException(
+            "O solicitante do chamado é obrigatório."
+        );
+    }
+
+    this.solicitanteId = solicitanteId;
+}
+
     private static String normalizarPrioridade(String prioridade) {
         if (prioridade == null) {
             return "Normal";
@@ -83,6 +103,10 @@ public class Chamado {
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getSolicitanteId() {
+        return solicitanteId;
     }
 
     public String getTitulo() {

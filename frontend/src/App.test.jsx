@@ -9,6 +9,22 @@ import {
 import userEvent from '@testing-library/user-event'
 import App from './PainelChamados'
 
+const usuarioAtendente = {
+  id: 10,
+  nome: 'Técnico de TI de teste',
+  email: 'tecnico@example.com',
+  ativo: true,
+  perfil: 'ATENDENTE',
+}
+
+const usuarioSolicitante = {
+  id: 20,
+  nome: 'Solicitante de teste',
+  email: 'solicitante@example.com',
+  ativo: true,
+  perfil: 'SOLICITANTE',
+}
+
 vi.mock('./services/autenticacaoApi', () => ({
   obterCsrf: vi.fn(async () => ({
     headerName: 'X-CSRF-TOKEN',
@@ -315,7 +331,7 @@ describe('Interface de chamados', () => {
   it('lista os chamados na tabela e mantém a descrição nos detalhes', async () => {
     api.chamados = [{ ...chamadoAberto }]
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     await screen.findByRole('button', { name: 'Abrir chamado #3' })
 
@@ -342,7 +358,7 @@ describe('Interface de chamados', () => {
   })
 
   it('mostra uma mensagem quando não há chamados', async () => {
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     expect(
       await screen.findByText('Nenhum chamado encontrado nesta página.'),
@@ -357,7 +373,7 @@ describe('Interface de chamados', () => {
     api.chamados = [{ ...chamadoAberto }]
     api.falhasListagem = 1
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Não foi possível conectar ao serviço. Tente novamente.',
@@ -377,7 +393,7 @@ describe('Interface de chamados', () => {
   it('cadastra, abre os detalhes e limpa os campos', async () => {
     const usuario = userEvent.setup()
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
     expect(screen.queryByLabelText('Título')).not.toBeInTheDocument()
@@ -427,7 +443,7 @@ describe('Interface de chamados', () => {
   it('impede cadastro com campos contendo apenas espaços', async () => {
     const usuario = userEvent.setup()
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
     const regiao = await abrirCadastro(usuario)
@@ -449,7 +465,7 @@ describe('Interface de chamados', () => {
     const usuario = userEvent.setup()
     api.erroCadastro = 'Título inválido.'
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
     const regiao = await abrirCadastro(usuario)
@@ -491,7 +507,7 @@ describe('Interface de chamados', () => {
       },
     ]
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     await screen.findByText('Página 1 de 2')
     await usuario.click(screen.getByRole('button', { name: 'Próxima' }))
@@ -525,7 +541,7 @@ describe('Interface de chamados', () => {
     const usuario = userEvent.setup()
     api.chamados = [{ ...chamadoAberto }]
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     await usuario.click(
       await screen.findByRole('button', {
@@ -571,7 +587,7 @@ describe('Interface de chamados', () => {
       status: 'Em atendimento',
     }]
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     await usuario.click(
       await screen.findByRole('button', {
@@ -620,7 +636,7 @@ describe('Interface de chamados', () => {
     api.chamados = [{ ...chamadoAberto }]
     api.erroStatus = 'Não é possível iniciar atendimento neste status.'
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     await usuario.click(
       await screen.findByRole('button', {
@@ -659,7 +675,7 @@ describe('Interface de chamados', () => {
       tamanho: 100,
     }]
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
 
     await usuario.click(
       await screen.findByRole('button', { name: 'Abrir chamado #3' }),
@@ -703,7 +719,7 @@ describe('Interface de chamados', () => {
   it('envia as fotos selecionadas no cadastro com CSRF e exibe a galeria', async () => {
     const usuario = userEvent.setup()
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
     const regiao = await abrirCadastro(usuario)
@@ -764,7 +780,7 @@ describe('Interface de chamados', () => {
   it('não envia uma foto removida antes do cadastro', async () => {
     const usuario = userEvent.setup()
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
     const regiao = await abrirCadastro(usuario)
@@ -802,7 +818,7 @@ describe('Interface de chamados', () => {
     const usuario = userEvent.setup()
     api.erroFotos = 'Não foi possível salvar as fotos.'
 
-    render(<App />)
+    render(<App usuario={usuarioAtendente} />)
     await screen.findByText('Nenhum chamado encontrado nesta página.')
 
     const regiao = await abrirCadastro(usuario)
@@ -855,4 +871,119 @@ describe('Interface de chamados', () => {
     expect(chamadasPara('/api/chamados', 'POST')).toHaveLength(1)
     expect(chamadasPara('/api/chamados/3/fotos', 'POST')).toHaveLength(2)
   })
+})
+describe('Permissões na interface de chamados', () => {
+  it.each([
+    {
+      cenario: 'solicitante',
+      conta: usuarioSolicitante,
+    },
+    {
+      cenario: 'usuário sem perfil',
+      conta: {
+        id: 30,
+        nome: 'Usuário sem perfil',
+        email: 'sem-perfil@example.com',
+        ativo: true,
+      },
+    },
+    {
+      cenario: 'usuário com perfil desconhecido',
+      conta: {
+        ...usuarioSolicitante,
+        perfil: 'ADMINISTRADOR',
+      },
+    },
+    {
+      cenario: 'usuário não informado',
+      conta: undefined,
+    },
+  ])(
+    'oculta ações de atendimento para $cenario e mantém os detalhes acessíveis',
+    async ({ conta }) => {
+      const usuario = userEvent.setup()
+
+      api.chamados = [
+        { ...chamadoAberto },
+        {
+          ...chamadoAberto,
+          id: 4,
+          titulo: 'Chamado em atendimento',
+          status: 'Em atendimento',
+        },
+      ]
+
+      render(<App usuario={conta} />)
+
+      await screen.findByRole('button', {
+        name: 'Abrir chamado #3',
+      })
+
+      expect(
+        within(tabela()).queryByRole('columnheader', {
+          name: 'Ações',
+          exact: true,
+        }),
+      ).not.toBeInTheDocument()
+
+      expect(
+        screen.queryByRole('button', {
+          name: /Iniciar atendimento:/,
+        }),
+      ).not.toBeInTheDocument()
+
+      expect(
+        screen.queryByRole('button', {
+          name: /Resolver chamado:/,
+        }),
+      ).not.toBeInTheDocument()
+
+      expect(
+        within(linhaChamado(3)).getByText('Aberto', {
+          exact: true,
+        }),
+      ).toBeInTheDocument()
+
+      expect(
+        within(linhaChamado(4)).getByText('Em atendimento', {
+          exact: true,
+        }),
+      ).toBeInTheDocument()
+
+      // A consulta dos detalhes continua disponível pelo número.
+      await usuario.click(
+        within(tabela()).getByRole('button', {
+          name: 'Abrir chamado #3',
+        }),
+      )
+
+      let dialogo = await aguardarDetalhes()
+
+      expect(
+        within(dialogo).getByText(chamadoAberto.descricao),
+      ).toBeInTheDocument()
+
+      await fecharDetalhes(usuario, dialogo)
+
+      // Também continua disponível pelo título.
+      await usuario.click(
+        within(tabela()).getByRole('button', {
+          name: chamadoAberto.titulo,
+          exact: true,
+        }),
+      )
+
+      dialogo = await aguardarDetalhes()
+
+      expect(
+        within(dialogo).getByText(chamadoAberto.descricao),
+      ).toBeInTheDocument()
+
+      const alteracoes = fetchMock.mock.calls.filter(
+        ([, opcoes]) => opcoes?.method === 'PATCH',
+      )
+
+      expect(alteracoes).toHaveLength(0)
+    },
+  )
 })

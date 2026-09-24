@@ -6,6 +6,11 @@ import java.util.Locale;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChamadoService {
 
     private final ChamadoRepository repository;
+    private final UsuarioRepository usuarioRepository;
 
-    public ChamadoService(ChamadoRepository repository) {
+    public ChamadoService(
+            ChamadoRepository repository,
+            UsuarioRepository usuarioRepository) {
+
         this.repository = repository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional
@@ -26,7 +36,11 @@ public class ChamadoService {
 
     @Transactional
     public Chamado abrirChamado(
-            String titulo, String descricao, String prioridade) {
+            String titulo,
+            String descricao,
+            String prioridade) {
+
+        Usuario usuario = obterUsuarioAutenticado();
 
         if (titulo == null || titulo.trim().isEmpty()) {
             throw new IllegalArgumentException(
@@ -43,7 +57,8 @@ public class ChamadoService {
         Chamado chamado = new Chamado(
             titulo.trim(),
             descricao.trim(),
-            prioridade
+            prioridade,
+            usuario.getId()
         );
 
         return repository.save(chamado);
@@ -58,7 +73,10 @@ public class ChamadoService {
     }
 
     public List<Chamado> listarChamados(
-            String status, String prioridade) {
+            String status,
+            String prioridade) {
+
+        Usuario usuario = obterUsuarioAutenticado();
 
         String statusNormalizado = status == null
             ? null
@@ -68,34 +86,35 @@ public class ChamadoService {
             ? null
             : normalizarPrioridade(prioridade);
 
-        if (statusNormalizado != null && prioridadeNormalizada != null) {
-            return repository.findByStatusAndPrioridadeOrderByIdAsc(
-                statusNormalizado,
-                prioridadeNormalizada
-            );
-        }
-
-        if (statusNormalizado != null) {
-            return repository.findByStatusOrderByIdAsc(statusNormalizado);
-        }
-
-        if (prioridadeNormalizada != null) {
-            return repository.findByPrioridadeOrderByIdAsc(
-                prioridadeNormalizada
-            );
-        }
-
-        return repository.findAll(Sort.by("id").ascending());
+        return repository.listarPermitidos(
+            usuario.getId(),
+            ehAtendente(usuario),
+            statusNormalizado,
+            prioridadeNormalizada,
+            Sort.by("id").ascending()
+        );
     }
 
     public PaginaChamadosResposta listarChamadosPaginados(
-            String status, int pagina, int tamanho) {
+            String status,
+            int pagina,
+            int tamanho) {
 
-        return listarChamadosPaginados(status, null, pagina, tamanho);
+        return listarChamadosPaginados(
+            status,
+            null,
+            pagina,
+            tamanho
+        );
     }
 
     public PaginaChamadosResposta listarChamadosPaginados(
-            String status, String prioridade, int pagina, int tamanho) {
+            String status,
+            String prioridade,
+            int pagina,
+            int tamanho) {
+
+        Usuario usuario = obterUsuarioAutenticado();
 
         if (pagina < 0) {
             throw new IllegalArgumentException(
@@ -129,27 +148,14 @@ public class ChamadoService {
             Sort.by("id").ascending()
         );
 
-        Page<Chamado> resultado;
-
-        if (statusNormalizado != null && prioridadeNormalizada != null) {
-            resultado = repository.findByStatusAndPrioridade(
+        Page<Chamado> resultado =
+            repository.listarPermitidosPaginados(
+                usuario.getId(),
+                ehAtendente(usuario),
                 statusNormalizado,
                 prioridadeNormalizada,
                 paginacao
             );
-        } else if (statusNormalizado != null) {
-            resultado = repository.findByStatus(
-                statusNormalizado,
-                paginacao
-            );
-        } else if (prioridadeNormalizada != null) {
-            resultado = repository.findByPrioridade(
-                prioridadeNormalizada,
-                paginacao
-            );
-        } else {
-            resultado = repository.findAll(paginacao);
-        }
 
         return new PaginaChamadosResposta(
             resultado.getContent(),
@@ -159,6 +165,104 @@ public class ChamadoService {
             resultado.getTotalPages(),
             resultado.hasNext()
         );
+    }
+
+    public Chamado buscarChamadoPorId(int id) {
+        Usuario usuario = obterUsuarioAutenticado();
+
+        return buscarChamadoPermitido(id, usuario);
+    }
+
+    @Transactional
+    public void iniciarAtendimento(int id) {
+        Usuario usuario = obterUsuarioAutenticado();
+        exigirAtendente(usuario);
+
+        Chamado chamado = buscarChamadoPermitido(id, usuario);
+        chamado.iniciarAtendimento();
+
+        repository.save(chamado);
+    }
+
+    @Transactional
+    public void resolverChamado(int id) {
+        Usuario usuario = obterUsuarioAutenticado();
+        exigirAtendente(usuario);
+
+        Chamado chamado = buscarChamadoPermitido(id, usuario);
+        chamado.resolver();
+
+        repository.save(chamado);
+    }
+
+    private Chamado buscarChamadoPermitido(int id, Usuario usuario) {
+        if (ehAtendente(usuario)) {
+            return repository.findById(id)
+                .orElseThrow(ChamadoNaoEncontradoException::new);
+        }
+
+        return repository.findByIdAndSolicitanteId(
+                id,
+                usuario.getId()
+            )
+            .orElseThrow(ChamadoNaoEncontradoException::new);
+    }
+
+    private Usuario obterUsuarioAutenticado() {
+        Authentication autenticacao =
+            SecurityContextHolder.getContext().getAuthentication();
+
+        if (autenticacao == null
+                || !autenticacao.isAuthenticated()
+                || autenticacao instanceof AnonymousAuthenticationToken) {
+
+            throw new AuthenticationCredentialsNotFoundException(
+                "Autenticação necessária."
+            );
+        }
+
+        String email = autenticacao.getName();
+
+        if (email == null || email.isBlank()) {
+            throw new AuthenticationCredentialsNotFoundException(
+                "Autenticação necessária."
+            );
+        }
+
+        String emailNormalizado =
+            email.trim().toLowerCase(Locale.ROOT);
+
+        Usuario usuario = usuarioRepository
+            .findByEmail(emailNormalizado)
+            .orElseThrow(() ->
+                new AuthenticationCredentialsNotFoundException(
+                    "Autenticação necessária."
+                )
+            );
+
+        if (!usuario.isAtivo()
+                || usuario.getId() == null
+                || (usuario.getPerfil() != PerfilUsuario.SOLICITANTE
+                    && usuario.getPerfil() != PerfilUsuario.ATENDENTE)) {
+
+            throw new AccessDeniedException(
+                "Requisição não autorizada."
+            );
+        }
+
+        return usuario;
+    }
+
+    private boolean ehAtendente(Usuario usuario) {
+        return usuario.getPerfil() == PerfilUsuario.ATENDENTE;
+    }
+
+    private void exigirAtendente(Usuario usuario) {
+        if (!ehAtendente(usuario)) {
+            throw new AccessDeniedException(
+                "Somente atendentes podem alterar o status do chamado."
+            );
+        }
     }
 
     private String normalizarStatus(String status) {
@@ -181,28 +285,5 @@ public class ChamadoService {
                 "Prioridade inválida. Use: Baixa, Normal ou Alta."
             );
         };
-    }
-
-    public Chamado buscarChamadoPorId(int id) {
-        return repository.findById(id)
-            .orElseThrow(ChamadoNaoEncontradoException::new);
-    }
-
-    @Transactional
-    public void iniciarAtendimento(int id) {
-        Chamado chamado = buscarChamadoPorId(id);
-
-        chamado.iniciarAtendimento();
-
-        repository.save(chamado);
-    }
-
-    @Transactional
-    public void resolverChamado(int id) {
-        Chamado chamado = buscarChamadoPorId(id);
-
-        chamado.resolver();
-
-        repository.save(chamado);
     }
 }

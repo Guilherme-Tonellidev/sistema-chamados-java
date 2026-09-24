@@ -1,6 +1,12 @@
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
-import { test, expect } from './autenticacao'
+import {
+  test,
+  expect,
+  entrarPelaInterface,
+  obterCabecalhosCsrf,
+  tecnicoTeste,
+} from './autenticacao'
 
 async function aguardarLista(page) {
   await expect(
@@ -333,12 +339,77 @@ test(
     ).toHaveAttribute('href', caminhoFoto)
 
     // Testa o fechamento pelo teclado no navegador real.
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog')).toHaveCount(0)
+    // Testa o fechamento pelo teclado no navegador real.
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('dialog')).toHaveCount(0)
 
-    await aguardarLista(page)
+      await aguardarLista(page)
 
-    const atendimentoPendente = aguardarResposta(
+      // O solicitante consulta o chamado, mas não recebe ações de atendimento.
+      await expect(
+        page.getByRole('columnheader', {
+          name: 'Ações',
+          exact: true,
+        }),
+      ).toHaveCount(0)
+
+      await expect(
+        linha.getByRole('button', {
+          name: `Iniciar atendimento: chamado #${chamado.id}`,
+          exact: true,
+        }),
+      ).toHaveCount(0)
+
+      // Confere o perfil retornado pela sessão real.
+      const sessaoSolicitante = await page.request.get('/api/auth/me')
+      expect(sessaoSolicitante.status()).toBe(200)
+      expect((await sessaoSolicitante.json()).perfil).toBe('SOLICITANTE')
+
+      // Mesmo com CSRF válido, o backend deve impedir a alteração.
+      const headers = await obterCabecalhosCsrf(page.request)
+
+      const tentativaNegada = await page.request.patch(
+        `/api/chamados/${chamado.id}/atendimento`,
+        { headers },
+      )
+
+      expect(tentativaNegada.status()).toBe(403)
+
+      const consultaAposNegativa = await page.request.get(
+        `/api/chamados/${chamado.id}`,
+      )
+
+      expect(consultaAposNegativa.status()).toBe(200)
+      expect((await consultaAposNegativa.json()).status).toBe('Aberto')
+
+      // Encerra a sessão do solicitante pela interface.
+      await page.getByRole('button', {
+        name: 'Sair',
+        exact: true,
+      }).click()
+
+      await expect(
+        page.getByRole('button', {
+          name: 'Entrar',
+          exact: true,
+        }),
+      ).toBeVisible()
+
+      // O Técnico de TI assume o atendimento do chamado.
+      await entrarPelaInterface(page, tecnicoTeste)
+
+      const sessaoTecnico = await page.request.get('/api/auth/me')
+      expect(sessaoTecnico.status()).toBe(200)
+      expect((await sessaoTecnico.json()).perfil).toBe('ATENDENTE')
+
+      // O técnico pode visualizar outros chamados; procura o título novamente.
+      linha = await localizarChamado(page, titulo)
+
+      await expect(
+        linha.getByText('Aberto', { exact: true }),
+      ).toBeVisible()
+
+      const atendimentoPendente = aguardarResposta(
       page,
       `/api/chamados/${chamado.id}/atendimento`,
       'PATCH',

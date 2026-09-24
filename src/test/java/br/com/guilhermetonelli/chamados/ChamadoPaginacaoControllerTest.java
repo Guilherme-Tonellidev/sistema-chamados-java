@@ -89,6 +89,9 @@ public class ChamadoPaginacaoControllerTest extends BaseIntegracaoTest {
             .andExpect(jsonPath("$.totalPaginas").value(0))
             .andExpect(jsonPath("$.temProxima").value(false));
 
+        // Restaura a autenticação para a chamada direta ao serviço.
+        autenticarComo(usuarioTeste);
+
         criarChamado("Único chamado");
 
         mockMvc.perform(get(ROTA).param("pagina", "5"))

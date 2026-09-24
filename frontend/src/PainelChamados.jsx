@@ -63,6 +63,7 @@ export default function PainelChamados({ usuario, aoSair }) {
   const operacaoEmAndamento = useRef(false)
   const operacaoPendente = salvando || idEmAlteracao !== null
   const temaEscuro = tema === 'escuro'
+  const podeAlterarStatus = usuario?.perfil === 'ATENDENTE'
 
   useEffect(() => {
     document.documentElement.dataset.tema = tema
@@ -253,11 +254,11 @@ export default function PainelChamados({ usuario, aoSair }) {
     }
   }
 
-  async function alterarStatus(chamado) {
-    const acao = acoesStatus[chamado.status]
+    async function alterarStatus(chamado) {
+      const acao = acoesStatus[chamado.status]
 
-    if (!acao || operacaoEmAndamento.current) {
-      return
+      if (!podeAlterarStatus || !acao || operacaoEmAndamento.current) {
+        return
     }
 
     operacaoEmAndamento.current = true
@@ -361,6 +362,7 @@ export default function PainelChamados({ usuario, aoSair }) {
         </div>
 
         <ListaChamados
+          podeAlterarStatus={podeAlterarStatus}
           aoAbrirChamado={setChamadoSelecionado}
           dados={dados}
           filtro={filtro}

@@ -1,57 +1,23 @@
 package br.com.guilhermetonelli.chamados;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.WebApplicationContext;
 
-@SpringBootTest
-@ActiveProfiles("test")
 @Transactional
-class ChamadoFiltrosCombinadosTest {
-
-    @Autowired
-    private WebApplicationContext context;
-
-    @Autowired
-    private ChamadoService service;
-
-    @Autowired
-    private ChamadoRepository repository;
-
-    private MockMvc mockMvc;
+class ChamadoFiltrosCombinadosTest extends BaseIntegracaoTest {
 
     private Integer idAltaAberta1;
     private Integer idAltaAberta2;
     private Integer idAltaResolvida;
 
     @BeforeEach
-    void preparar() {
-       mockMvc = MockMvcBuilders
-    .webAppContextSetup(context)
-    .defaultRequest(get("/")
-        .with(user("teste@example.com"))
-        .with(csrf()))
-    .apply(springSecurity())
-    .build();
-
-        // Limpa somente os dados do banco de testes desta transação.
-        repository.deleteAll();
-        repository.flush();
-
+    void prepararChamados() {
+        // A classe base já preparou o banco e autenticou o atendente.
         idAltaAberta1 = service.abrirChamado(
             "Alta aberta 1",
             "Primeiro chamado de prioridade alta.",

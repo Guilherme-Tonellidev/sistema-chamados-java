@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -22,11 +23,11 @@ import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,33 +35,31 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-@SpringBootTest
-@ActiveProfiles("test")
 @Transactional
-class FotoChamadoTest {
+class FotoChamadoTest extends BaseIntegracaoTest {
 
     @Autowired
     private FotoChamadoService fotos;
 
     @Autowired
-    private ChamadoService chamados;
-
-    @Autowired
-    private ChamadoRepository repository;
-
-    @Autowired
     private WebApplicationContext context;
 
-    private MockMvc mockMvc;
+    private MockMvc mockMvcFotos;
+    private Usuario solicitante;
     private int chamadoId;
 
     @BeforeEach
-    void preparar() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+    void prepararFotos() {
+        // Sem autenticação ou CSRF padrão nas requisições HTTP.
+        mockMvcFotos = MockMvcBuilders
+            .webAppContextSetup(context)
             .apply(springSecurity())
             .build();
 
-        Chamado chamado = chamados.abrirChamado(
+        solicitante = criarSolicitante();
+        autenticarComo(solicitante);
+
+        Chamado chamado = service.abrirChamado(
             "Impressora com problema",
             "Foto do erro no equipamento."
         );
@@ -71,28 +70,38 @@ class FotoChamadoTest {
 
     @Test
     void deveEnviarListarEConsultarImagemAutenticado() throws Exception {
-        mockMvc.perform(multipart("/chamados/{id}/fotos", chamadoId)
-                .file(fotoValida())
-                .with(user("teste@example.com"))
-                .with(csrf()))
+        mockMvcFotos.perform(
+                multipart("/chamados/{id}/fotos", chamadoId)
+                    .file(fotoValida())
+                    .with(
+                        user(solicitante.getEmail()).roles("SOLICITANTE")
+                    )
+                    .with(csrf())
+            )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$[0].id").isString())
             .andExpect(jsonPath("$[0].tipo").value("image/png"))
             .andExpect(jsonPath("$[0].conteudo").doesNotExist());
+
+        // O MockMvc limpa o contexto ao encerrar a requisição.
+        autenticarComo(solicitante);
 
         var lista = fotos.listar(chamadoId);
         assertEquals(1, lista.size());
 
         String fotoId = lista.getFirst().id();
 
-        mockMvc.perform(get("/chamados/{id}/fotos", chamadoId)
-                .with(user("teste@example.com")))
+        mockMvcFotos.perform(get("/chamados/{id}/fotos", chamadoId)
+                .with(user(solicitante.getEmail()).roles("SOLICITANTE")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(fotoId));
 
-        byte[] conteudo = mockMvc.perform(
+        byte[] conteudo = mockMvcFotos.perform(
                 get("/chamados/{id}/fotos/{fotoId}", chamadoId, fotoId)
-                    .with(user("teste@example.com")))
+                    .with(
+                        user(solicitante.getEmail()).roles("SOLICITANTE")
+                    )
+            )
             .andExpect(status().isOk())
             .andExpect(content().contentType("image/png"))
             .andReturn()
@@ -104,8 +113,13 @@ class FotoChamadoTest {
         );
 
         assertNotNull(imagem);
-        assertEquals(2, imagem.getWidth());
-        assertEquals(2, imagem.getHeight());
+
+        try {
+            assertEquals(2, imagem.getWidth());
+            assertEquals(2, imagem.getHeight());
+        } finally {
+            imagem.flush();
+        }
     }
 
     @Test
@@ -116,7 +130,7 @@ class FotoChamadoTest {
             "fotos",
             "foto.png",
             "image/png",
-            "isto não é uma imagem".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+            "isto não é uma imagem".getBytes(StandardCharsets.UTF_8)
         );
 
         assertThrows(
@@ -177,23 +191,34 @@ class FotoChamadoTest {
             List.of(fotoValida())
         ).getFirst();
 
-        mockMvc.perform(get("/chamados/{id}/fotos", chamadoId))
+        // Remove também a autenticação usada na preparação.
+        TestSecurityContextHolder.clearContext();
+
+        mockMvcFotos.perform(get("/chamados/{id}/fotos", chamadoId))
             .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(
-                get("/chamados/{id}/fotos/{fotoId}", chamadoId, foto.id()))
+        mockMvcFotos.perform(
+                get("/chamados/{id}/fotos/{fotoId}", chamadoId, foto.id())
+            )
             .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(multipart("/chamados/{id}/fotos", chamadoId)
-                .file(fotoValida())
-                .with(csrf()))
+        mockMvcFotos.perform(
+                multipart("/chamados/{id}/fotos", chamadoId)
+                    .file(fotoValida())
+                    .with(csrf())
+            )
             .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(multipart("/chamados/{id}/fotos", chamadoId)
-                .file(fotoValida())
-                .with(user("teste@example.com")))
+        mockMvcFotos.perform(
+                multipart("/chamados/{id}/fotos", chamadoId)
+                    .file(fotoValida())
+                    .with(
+                        user(solicitante.getEmail()).roles("SOLICITANTE")
+                    )
+            )
             .andExpect(status().isForbidden());
 
+        autenticarComo(solicitante);
         assertEquals(1, fotos.listar(chamadoId).size());
     }
 
@@ -204,7 +229,8 @@ class FotoChamadoTest {
             List.of(fotoValida())
         ).getFirst();
 
-        Chamado outro = chamados.abrirChamado(
+        // Mesmo proprietário, mas outro chamado.
+        Chamado outro = service.abrirChamado(
             "Outro chamado",
             "Outra solicitação."
         );
@@ -217,6 +243,86 @@ class FotoChamadoTest {
         );
 
         assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
+    }
+
+    @Test
+    void outroSolicitanteNaoDeveListarConsultarOuAdicionarFotos()
+            throws Exception {
+
+        var foto = fotos.adicionar(
+            chamadoId,
+            List.of(fotoValida())
+        ).getFirst();
+
+        Usuario outro = criarSolicitante();
+
+        TestSecurityContextHolder.clearContext();
+
+        mockMvcFotos.perform(get("/chamados/{id}/fotos", chamadoId)
+                .with(user(outro.getEmail()).roles("SOLICITANTE")))
+            .andExpect(status().isNotFound());
+
+        mockMvcFotos.perform(
+                get("/chamados/{id}/fotos/{fotoId}", chamadoId, foto.id())
+                    .with(user(outro.getEmail()).roles("SOLICITANTE"))
+            )
+            .andExpect(status().isNotFound());
+
+        mockMvcFotos.perform(
+                multipart("/chamados/{id}/fotos", chamadoId)
+                    .file(fotoValida())
+                    .with(user(outro.getEmail()).roles("SOLICITANTE"))
+                    .with(csrf())
+            )
+            .andExpect(status().isNotFound());
+
+        // Confere que a tentativa não adicionou outra foto.
+        autenticarComo(solicitante);
+
+        var lista = fotos.listar(chamadoId);
+        assertEquals(1, lista.size());
+        assertEquals(foto.id(), lista.getFirst().id());
+    }
+
+    @Test
+    void atendenteDeveListarConsultarEAdicionarFotosDeOutroUsuario()
+            throws Exception {
+
+        var foto = fotos.adicionar(
+            chamadoId,
+            List.of(fotoValida())
+        ).getFirst();
+
+        TestSecurityContextHolder.clearContext();
+
+        mockMvcFotos.perform(get("/chamados/{id}/fotos", chamadoId)
+                .with(user(usuarioTeste.getEmail()).roles("ATENDENTE")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value(foto.id()));
+
+        mockMvcFotos.perform(
+                get("/chamados/{id}/fotos/{fotoId}", chamadoId, foto.id())
+                    .with(
+                        user(usuarioTeste.getEmail()).roles("ATENDENTE")
+                    )
+            )
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("image/png"));
+
+        mockMvcFotos.perform(
+                multipart("/chamados/{id}/fotos", chamadoId)
+                    .file(fotoValida())
+                    .with(
+                        user(usuarioTeste.getEmail()).roles("ATENDENTE")
+                    )
+                    .with(csrf())
+            )
+            .andExpect(status().isCreated());
+
+        // O proprietário também consegue consultar a foto adicionada.
+        autenticarComo(solicitante);
+        assertEquals(2, fotos.listar(chamadoId).size());
     }
 
     private MockMultipartFile fotoValida() throws Exception {

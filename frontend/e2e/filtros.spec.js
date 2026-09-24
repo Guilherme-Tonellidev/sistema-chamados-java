@@ -1,5 +1,26 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect, obterCabecalhosCsrf } from './autenticacao'
+import {
+  test as testeBase,
+  expect,
+  obterCabecalhosCsrf,
+  entrarPelaInterface,
+  tecnicoTeste,
+} from './autenticacao'
+
+const test = testeBase.extend({
+  requestTecnico: async ({ browser, baseURL }, executarTeste) => {
+    const contextoTecnico = await browser.newContext({ baseURL })
+
+    try {
+      const paginaTecnico = await contextoTecnico.newPage()
+      await entrarPelaInterface(paginaTecnico, tecnicoTeste)
+
+      await executarTeste(contextoTecnico.request)
+    } finally {
+      await contextoTecnico.close()
+    }
+  },
+})
 
 const nomesStatus = {
   '': 'Todos',
@@ -47,7 +68,14 @@ async function conferirFiltros(page, status, prioridade) {
   ).toHaveValue(prioridade)
 }
 
-async function criarChamado(request, titulo, prioridade, resolvido) {
+async function criarChamado(
+  request,
+  titulo,
+  prioridade,
+  resolvido,
+  requestTecnico,
+) {
+  // O solicitante cria o chamado e permanece como seu proprietário.
   const resposta = await request.post('/api/chamados', {
     headers: await obterCabecalhosCsrf(request),
     data: {
@@ -62,19 +90,20 @@ async function criarChamado(request, titulo, prioridade, resolvido) {
   const chamado = await resposta.json()
 
   if (resolvido) {
-    const atendimento = await request.patch(
+    // As transições usam somente a sessão separada do técnico.
+    const atendimento = await requestTecnico.patch(
       `/api/chamados/${chamado.id}/atendimento`,
       {
-        headers: await obterCabecalhosCsrf(request),
+        headers: await obterCabecalhosCsrf(requestTecnico),
       },
     )
 
     expect(atendimento.status()).toBe(200)
 
-    const resolucao = await request.patch(
+    const resolucao = await requestTecnico.patch(
       `/api/chamados/${chamado.id}/resolucao`,
       {
-        headers: await obterCabecalhosCsrf(request),
+        headers: await obterCabecalhosCsrf(requestTecnico),
       },
     )
 
@@ -248,6 +277,7 @@ async function conferirResultados(
 
 test('combina status e prioridade e remove cada filtro preservando o outro', async ({
   page,
+  requestTecnico,
 }) => {
   // Usa os cookies da sessão autenticada no navegador.
   const request = page.request
@@ -267,19 +297,21 @@ test('combina status e prioridade e remove cada filtro preservando o outro', asy
     false,
   )
 
-  const resolvidoAlta = await criarChamado(
-    request,
-    `${prefixo} resolvido alta`,
-    'Alta',
-    true,
-  )
+ const resolvidoAlta = await criarChamado(
+  request,
+  `${prefixo} resolvido alta`,
+  'Alta',
+  true,
+  requestTecnico,
+)
 
-  await criarChamado(
-    request,
-    `${prefixo} resolvido baixa`,
-    'Baixa',
-    true,
-  )
+await criarChamado(
+  request,
+  `${prefixo} resolvido baixa`,
+  'Baixa',
+  true,
+  requestTecnico,
+)
 
   await page.goto('/')
   await aguardarLista(page)
