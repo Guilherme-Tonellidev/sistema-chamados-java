@@ -391,13 +391,13 @@ h2 {
 
 .acesso-centro {
   width: 100%;
-  max-width: 340px;
+  max-width: 400px;
   margin: auto 0;
-  padding: 36px 0 56px;
+  padding: 20px 0 28px;
 }
 
 .acesso-marca {
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 }
 
 .elodesk-identidade {
@@ -593,6 +593,95 @@ h2 {
   line-height: 1.6;
 }
 
+/* Cadastro e navegação entre as telas de acesso */
+
+.acesso-centro:has(.cadastro-usuario) {
+  max-width: 400px;
+}
+
+.acesso-elodesk .cadastro-usuario .formulario {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.acesso-elodesk .cadastro-usuario .campo {
+  gap: 5px;
+}
+
+.acesso-elodesk .cadastro-usuario .acesso-alternativa {
+  margin-top: 8px;
+}
+
+.cadastro-senhas {
+  column-gap: 12px;
+}
+
+.cadastro-senhas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 8px 16px;
+}
+
+.acesso-ajuda {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #bac3d4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.acesso-alternativa {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin: 18px 0 0;
+  color: #bac3d4;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.acesso-elodesk .acesso-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #b7c2ff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.acesso-elodesk .acesso-link:hover:not(:disabled) {
+  background: transparent;
+  color: #e0e5ff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.acesso-elodesk .login > .aviso-cadastro {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #203e35;
+  border: 1px solid #4b806c;
+  color: #d1f5e3;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .cadastro-senhas {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
 /* Ajustes para telas pequenas */
 
 @media (max-width: 640px) {
@@ -639,33 +728,46 @@ h2 {
     transition: none;
   }
 }
-/* Login compacto em telas com pouca altura */
+/* Acesso compacto em telas com pouca altura */
 @media (max-height: 800px) {
   .acesso-elodesk {
-    padding: 20px 24px 12px;
+    padding: 12px 24px;
   }
 
   .acesso-centro {
-    padding: 12px 0;
+    padding: 0;
   }
 
   .acesso-marca {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .acesso-marca p {
-    margin-top: 8px;
+    margin-top: 6px;
+  }
+
+  .acesso-elodesk .login h2 {
+    margin-bottom: 6px;
   }
 
   .acesso-elodesk .formulario {
-    margin-top: 18px;
-    gap: 14px;
+    margin-top: 14px;
+    gap: 12px;
+  }
+
+  .acesso-elodesk .campo {
+    gap: 6px;
+  }
+
+  .acesso-alternativa {
+    margin-top: 8px;
   }
 
   .acesso-rodape {
-    margin-top: 12px;
+    margin-top: 8px;
   }
 }
+
 /* Painel EloDesk */
 
 .painel-elodesk {
@@ -1402,4 +1504,94 @@ h2 {
 
 .cadastro-fotos > .erro {
   margin-top: 16px;
+}
+
+/* Cadastro compacto em telas com pouca altura */
+@media (max-height: 800px) {
+  .acesso-elodesk:has(.cadastro-usuario) {
+    padding: 10px 24px;
+  }
+
+  .acesso-centro:has(.cadastro-usuario) {
+    padding: 0;
+  }
+
+  .acesso-centro:has(.cadastro-usuario) .acesso-marca {
+    margin-bottom: 10px;
+  }
+
+  .acesso-centro:has(.cadastro-usuario) .acesso-marca p {
+    margin-top: 4px;
+  }
+
+  .acesso-elodesk .cadastro-usuario h2 {
+    margin-bottom: 4px;
+  }
+
+  .acesso-elodesk .cadastro-usuario .formulario {
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  .acesso-elodesk .cadastro-usuario .campo {
+    gap: 4px;
+  }
+
+  .acesso-elodesk .cadastro-usuario .acesso-alternativa {
+    margin-top: 4px;
+  }
+
+  .acesso-elodesk:has(.cadastro-usuario) .acesso-rodape {
+    margin-top: 6px;
+  }
+}
+
+/* Cabeçalho compacto somente no cadastro */
+@media (max-height: 800px) {
+  .acesso-centro:has(.cadastro-usuario) .acesso-marca {
+    margin-bottom: 8px;
+  }
+
+  .acesso-centro:has(.cadastro-usuario) .acesso-marca h1 {
+    font-size: 26px;
+  }
+
+  .acesso-centro:has(.cadastro-usuario) .elodesk-simbolo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .acesso-centro:has(.cadastro-usuario) .acesso-marca > p {
+    display: none;
+  }
+
+  .acesso-elodesk .cadastro-usuario .login-descricao {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
+/* Mesmo cabeçalho para entrar e criar conta */
+@media (max-height: 800px) {
+  .acesso-centro .acesso-marca {
+    margin-bottom: 8px;
+  }
+
+  .acesso-centro .acesso-marca h1 {
+    font-size: 26px;
+  }
+
+  .acesso-centro .elodesk-simbolo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .acesso-centro .acesso-marca > p {
+    display: none;
+  }
+
+  .acesso-elodesk .login-descricao {
+    font-size: 13px;
+    line-height: 1.4;
+  }
 }

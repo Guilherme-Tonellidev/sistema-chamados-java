@@ -47,7 +47,7 @@ A tela de login possui apresentação escura própria. A preferência de tema é
 - Retornar erros padronizados.
 - Persistir dados no PostgreSQL e gerenciar a estrutura com Flyway.
 
-O cadastro de usuários está disponível pela API. Ainda não existe tela de cadastro.
+É possível criar uma conta pela tela Criar conta. Novos usuários recebem o perfil SOLICITANTE e, após o cadastro, podem entrar com o e-mail e a senha cadastrados.
 
 ## Perfis e permissões
 
@@ -137,7 +137,7 @@ Não existe exclusão de fotos já salvas. A remoção no formulário se aplica 
 - Nome com até 100 caracteres, após remover espaços nas extremidades.
 - E-mail com até 254 caracteres, validação de formato e normalização para minúsculas.
 - Cada e-mail normalizado pode pertencer a apenas um usuário.
-- Senha com pelo menos 15 caracteres e no máximo 72 bytes em UTF-8.
+- Senha com pelo menos 8 caracteres e no máximo 72 bytes em UTF-8.
 - Caracteres Unicode podem ocupar mais de um byte.
 - A senha é preservada como recebida, inclusive espaços nas extremidades.
 - Novos usuários recebem `ativo: true` e perfil `SOLICITANTE`.
@@ -683,12 +683,12 @@ Para conferir persistência no PostgreSQL:
 
 ## Testes e verificações
 
-Resultados locais verificados em 24/09/2026:
+Resultados locais verificados em 27/09/2026:
 
 | Verificação | Resultado |
 |---|---|
-| Back-end | 123 testes aprovados |
-| Interface React | 40 testes aprovados |
+| Back-end | 124 testes aprovados |
+| Interface React | 48 testes aprovados |
 | Playwright | 3 testes aprovados |
 | Oxlint | 0 avisos e 0 erros |
 | Build do front-end | Concluído com sucesso |
@@ -737,7 +737,7 @@ npm test
 | `App.prioridade.test.jsx` | 3 |
 | `App.filtros.test.jsx` | 6 |
 | `App.tema.test.jsx` | 8 |
-| `App.autenticacao.test.jsx` | 5 |
+| `App.autenticacao.test.jsx` | 13 |
 
 A suíte verifica cadastro, tabela, paginação, filtros, prioridades, detalhes, fotos, temas, autenticação e tratamento de falhas.
 
@@ -883,7 +883,6 @@ Quando uma operação de chamados retorna 401, a interface orienta a recarregar 
 ### Limites atuais
 
 - Não há recuperação de senha nem confirmação de propriedade do e-mail.
-- Não há tela de cadastro de usuários.
 - Não há tela ou endpoint de administração de perfis.
 - Não há exclusão de fotos já salvas.
 - Chamados legados sem solicitante ficam restritos ao Técnico de TI.
@@ -891,7 +890,6 @@ Quando uma operação de chamados retorna 401, a interface orienta a recarregar 
 
 ## Próximas melhorias
 
-- Criar a tela de cadastro de usuários.
 - Implementar administração de usuários e perfis com autorização específica.
 - Adicionar recuperação de senha e confirmação de e-mail.
 - Preparar a configuração de produção.

@@ -111,9 +111,9 @@ public class UsuarioService {
 
         int caracteres = senha.codePointCount(0, senha.length());
 
-        if (caracteres < 15) {
+        if (caracteres < 8) {
             throw new IllegalArgumentException(
-                "Senha deve ter pelo menos 15 caracteres."
+                "Senha deve ter pelo menos 8 caracteres."
             );
         }
 

@@ -171,16 +171,34 @@ class UsuarioCadastroTest {
         assertEquals(0L, repository.count());
     }
 
-    @Test
-    void deveRejeitarSenhaCurta() throws Exception {
-        cadastrar("Ana", "ana@example.com", "a".repeat(14))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.erro").value(
-                "Senha deve ter pelo menos 15 caracteres."
-            ));
+@Test
+void deveRejeitarSenhaCurta() throws Exception {
+    cadastrar("Ana", "ana@example.com", "a".repeat(7))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.erro").value(
+            "Senha deve ter pelo menos 8 caracteres."
+        ));
 
-        assertEquals(0L, repository.count());
-    }
+    assertEquals(0L, repository.count());
+}
+
+    @Test
+    void deveAceitarSenhaComOitoCaracteres() throws Exception {
+        String senha = "Teste123!";
+
+        cadastrar("Ana", "ana@example.com", senha)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.perfil").value("SOLICITANTE"));
+
+        entityManager.clear();
+
+        Usuario usuario = repository.findByEmail("ana@example.com")
+            .orElseThrow();
+
+        assertEquals(1L, repository.count());
+        assertNotEquals(senha, usuario.getSenhaHash());
+        assertTrue(passwordEncoder.matches(senha, usuario.getSenhaHash()));
+}
 
     @Test
     void deveRejeitarSenhaAcimaDe72Bytes() throws Exception {

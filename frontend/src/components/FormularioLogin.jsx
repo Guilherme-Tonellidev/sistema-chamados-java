@@ -1,7 +1,11 @@
 import { useRef, useState } from 'react'
 import { entrar } from '../services/autenticacaoApi'
 
-export default function FormularioLogin({ aoEntrar }) {
+export default function FormularioLogin({
+  aoEntrar,
+  aoCriarConta,
+  aviso = '',
+}) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -51,6 +55,12 @@ export default function FormularioLogin({ aoEntrar }) {
       <p className="login-descricao">
         Use sua conta para acessar o painel de chamados.
       </p>
+
+  {aviso && (
+    <p className="aviso-cadastro sucesso" role="status">
+      {aviso}
+    </p>
+)}
 
       <form
         className="formulario"
@@ -128,6 +138,19 @@ export default function FormularioLogin({ aoEntrar }) {
           {enviando ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
+    {aoCriarConta && (
+  <p className="acesso-alternativa">
+    Não tem conta?{' '}
+    <button
+      type="button"
+      className="acesso-link"
+      onClick={aoCriarConta}
+      disabled={enviando}
+    >
+      Criar conta
+    </button>
+  </p>
+)}
     </section>
   )
 }

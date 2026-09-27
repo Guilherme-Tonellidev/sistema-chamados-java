@@ -107,3 +107,23 @@ export async function sair() {
     await lerResposta(resposta, 'Não foi possível encerrar a sessão.')
   }
 }
+
+export async function cadastrarUsuario({ nome, email, senha }) {
+  const csrf = await obterCsrf()
+
+  const resposta = await fetch('/api/usuarios', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      [csrf.headerName]: csrf.token,
+    },
+    body: JSON.stringify({
+      nome: nome.trim(),
+      email: email.trim(),
+      senha,
+    }),
+  })
+
+  return lerResposta(resposta, 'Não foi possível criar a conta.')
+}

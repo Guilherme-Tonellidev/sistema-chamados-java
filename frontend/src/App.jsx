@@ -3,6 +3,7 @@ import PainelChamados from './PainelChamados'
 import FormularioLogin from './components/FormularioLogin'
 import { consultarSessao, sair } from './services/autenticacaoApi'
 import './App.css'
+import FormularioCadastroUsuario from './components/FormularioCadastroUsuario'
 
 function Acesso({ children }) {
   return (
@@ -61,6 +62,8 @@ export default function App() {
   const [estado, setEstado] = useState('consultando')
   const [erro, setErro] = useState('')
   const [tentativa, setTentativa] = useState(0)
+  const [criandoConta, setCriandoConta] = useState(false)
+  const [avisoLogin, setAvisoLogin] = useState('')
   const logoutEmAndamento = useRef(false)
 
   useEffect(() => {
@@ -104,6 +107,8 @@ export default function App() {
 
   function concluirLogin(usuarioConectado) {
     setErro('')
+    setAvisoLogin('')
+    setCriandoConta(false)
     setUsuario(usuarioConectado)
     setEstado('autenticado')
   }
@@ -164,8 +169,28 @@ export default function App() {
       )}
 
       {estado === 'anonimo' && (
-        <FormularioLogin aoEntrar={concluirLogin} />
-      )}
+        criandoConta ? (
+          <FormularioCadastroUsuario
+            aoConcluir={() => {
+              setAvisoLogin('Conta criada com sucesso! Entre com seu e-mail e senha.')
+              setCriandoConta(false)
+            }}
+            aoVoltar={() => {
+              setAvisoLogin('')
+              setCriandoConta(false)
+            }}
+          />
+        ) : (
+          <FormularioLogin
+            aoEntrar={concluirLogin}
+            aviso={avisoLogin}
+            aoCriarConta={() => {
+              setAvisoLogin('')
+              setCriandoConta(true)
+            }}
+          />
+        )
+)}
     </Acesso>
   )
 }
