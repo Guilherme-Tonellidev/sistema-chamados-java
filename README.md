@@ -902,4 +902,4 @@ Quando uma operação de chamados retorna 401, a interface orienta a recarregar 
 Estudante de Análise e Desenvolvimento de Sistemas, desenvolvendo projetos para a primeira oportunidade como programador júnior.
 
 - [GitHub](https://github.com/Guilherme-Tonellidev)
-- [LinkedIn](https://www.linkedin.com/in/guilherme-tonelli-473584423)
+- [LinkedIn](https://www.linkedin.com/in/guilherme-tonellidev)
